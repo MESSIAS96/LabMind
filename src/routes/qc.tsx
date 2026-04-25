@@ -26,6 +26,8 @@ import { toast } from "sonner";
 import type { RetrievalResults, SearchResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { SourceBadge } from "@/components/app/SourceBadge";
+import { useDemoAutoAdvance } from "@/components/app/DemoToggle";
+import { AppFooter } from "@/components/app/AppFooter";
 
 export const Route = createFileRoute("/qc")({
   head: () => ({ meta: [{ title: "Literature QC — AI Scientist" }] }),
@@ -83,6 +85,11 @@ function QCScreen() {
   const fNov = useServerFn(classifyNovelty);
 
   const ready = !!s.literature_qc;
+
+  // Demo mode: pause 5s on novelty, then auto-generate plan.
+  useDemoAutoAdvance(ready && !genStage && !s.experiment_plan.protocol, 5000, () => {
+    void generate();
+  });
 
   useEffect(() => {
     if (!s.parsed_hypothesis) return;

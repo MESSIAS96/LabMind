@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useApp } from "@/lib/store";
 import { ArrowRight } from "lucide-react";
 import type { ParsedHypothesis } from "@/lib/types";
+import { useDemoAutoAdvance } from "@/components/app/DemoToggle";
+import { AppFooter } from "@/components/app/AppFooter";
 
 export const Route = createFileRoute("/parsed")({
   head: () => ({ meta: [{ title: "Parsed hypothesis — AI Scientist" }] }),
@@ -27,6 +29,8 @@ function ParsedScreen() {
   const s = useApp();
   const navigate = useNavigate();
   const p = s.parsed_hypothesis;
+
+  useDemoAutoAdvance(!!p, 2000, () => navigate({ to: "/qc" }));
 
   if (!p) {
     return (
@@ -74,6 +78,7 @@ function ParsedScreen() {
           </Button>
         </div>
       </main>
+      <AppFooter />
     </div>
   );
 }

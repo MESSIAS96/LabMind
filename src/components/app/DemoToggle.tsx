@@ -35,6 +35,24 @@ export function useDemoMode(): [boolean, (v: boolean) => void] {
   ];
 }
 
+/**
+ * When demo mode is active, runs `action` after `delayMs` while `enabled` is true.
+ * Cleans up automatically. Only fires once per mount.
+ */
+export function useDemoAutoAdvance(
+  enabled: boolean,
+  delayMs: number,
+  action: () => void,
+) {
+  const [on] = useDemoMode();
+  useEffect(() => {
+    if (!on || !enabled) return;
+    const t = window.setTimeout(action, delayMs);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, enabled, delayMs]);
+}
+
 export function DemoToggle() {
   const [on, setOn] = useDemoMode();
   return (
