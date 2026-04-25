@@ -13,6 +13,34 @@ export type SearchResult = {
   title: string;
   url: string;
   content: string;
+  source?: SourceTag;
+  meta?: {
+    authors?: string;
+    year?: string | number;
+    citations?: number;
+    doi?: string;
+    pmid?: string;
+    addgene_id?: string | number;
+    steps_count?: number;
+  };
+};
+
+export type SourceTag =
+  | "protocols.io"
+  | "PubMed"
+  | "Semantic Scholar"
+  | "Addgene"
+  | "Protocol Repository"
+  | "Supplier"
+  | "Validation Reference"
+  | "Other";
+
+export type RetrievalResults = {
+  protocolSources: SearchResult[];
+  literatureSources: SearchResult[];
+  supplierSources: SearchResult[];
+  plasmidSources: SearchResult[];
+  validationSources: SearchResult[];
 };
 
 export type Reference = {
@@ -116,10 +144,7 @@ export type AppState = {
   preferred_suppliers?: string;
   timeline_target?: string;
   parsed_hypothesis?: ParsedHypothesis;
-  tavily_protocol_results: SearchResult[];
-  tavily_supplier_results: SearchResult[];
-  tavily_validation_results: SearchResult[];
-  semantic_scholar_results: SearchResult[];
+  retrieval_results: RetrievalResults;
   literature_qc?: LiteratureQC;
   experiment_plan: ExperimentPlan;
   review: {
