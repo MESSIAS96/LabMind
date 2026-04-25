@@ -3,7 +3,19 @@ import { useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  Star,
+  ArrowRight,
+  CheckCircle2,
+  ArrowLeft,
+  Download,
+  ChevronDown,
+  Loader2,
+  FileText,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  FileType,
+} from "lucide-react";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,6 +29,15 @@ import {
 import { Spinner } from "@/components/app/Spinner";
 import { toast } from "sonner";
 import type { Correction } from "@/lib/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { downloadPlanText } from "@/lib/exportPlan";
+import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { exportToXLSX } from "@/lib/exportXlsx";
 
 export const Route = createFileRoute("/review")({
   head: () => ({ meta: [{ title: "Scientist review — AI Scientist" }] }),
@@ -125,6 +146,7 @@ function ReviewScreen() {
   const s = useApp();
   const navigate = useNavigate();
   const [stage, setStage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const fProto = useServerFn(generateProtocol);
   const fMat = useServerFn(generateMaterials);
@@ -149,6 +171,23 @@ function ReviewScreen() {
   const flagged = s.review.corrections.filter(
     (c) => c.rating > 0 || c.issue_tags.length || c.notes.trim(),
   );
+
+  const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+    setExporting(true);
+    try {
+      if (kind === "pdf") await exportToPDF(s);
+      else if (kind === "xlsx") exportToXLSX(s);
+      else if (kind === "gantt-png") await exportGanttPNG();
+      else if (kind === "gantt-pdf") await exportGanttPDF();
+      else downloadPlanText(s);
+      toast.success("Downloaded successfully");
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Export failed — please try again");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const regenerate = async () => {
     if (!s.parsed_hypothesis) return;
@@ -222,10 +261,51 @@ function ReviewScreen() {
     <div className="min-h-screen">
       <AppHeader stage="review" />
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Scientist Review</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Rate each section, flag issues, and add corrections. The next pass will incorporate your notes.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Scientist Review</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Rate each section, flag issues, and add corrections. The next pass will incorporate your notes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/plan">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to plan
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={exporting}>
+                  {exporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Export pre-review plan
+                  <ChevronDown className="ml-1 h-4 w-4 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("pdf"); }}>
+                  <FileText className="mr-2 h-4 w-4 text-primary" /> Full Report PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("xlsx"); }}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" /> Supplier & Budget XLSX
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-png"); }}>
+                  <ImageIcon className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-pdf"); }}>
+                  <FileType className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("txt"); }}>
+                  <FileText className="mr-2 h-4 w-4 text-muted-foreground" /> Plan Summary TXT
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-4">
           {SECTIONS.map((sec) => (
