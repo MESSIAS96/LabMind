@@ -292,6 +292,7 @@ function ReviewScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="review" />
+      <NavArrows current="review" />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -339,9 +340,43 @@ function ReviewScreen() {
           </div>
         </div>
 
+        {daBannerOpen && (
+          <div className="mt-6 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
+            <Bot className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">
+                Devil's Advocate findings have been pre-loaded as a starting point.
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Edit, remove, or add your own corrections below. Each pre-filled note is marked 🤖.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDaBannerOpen(false)}
+              className="rounded p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {!daBannerOpen && !s.devils_advocate && (
+          <div className="mt-6 flex items-start gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="text-xs text-muted-foreground">
+              Review each section and enter corrections. The plan will be improved based on your input.
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 grid gap-4">
           {SECTIONS.map((sec) => (
-            <ReviewCard key={sec.key} sectionKey={sec.key} label={sec.label} />
+            <ReviewCard
+              key={`${sec.key}-${prefilledRef.current ? "da" : "plain"}`}
+              sectionKey={sec.key}
+              label={sec.label}
+            />
           ))}
         </div>
 
