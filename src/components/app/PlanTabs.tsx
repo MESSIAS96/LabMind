@@ -17,6 +17,23 @@ import type { ExperimentPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { RetrievalResults } from "@/lib/types";
 import { SourceBadge } from "@/components/app/SourceBadge";
+import type { SourceTag } from "@/lib/types";
+
+function inferSupplierTag(supplier: string): SourceTag {
+  const s = supplier.toLowerCase();
+  if (s.includes("addgene")) return "Addgene";
+  if (
+    s.includes("thermo") ||
+    s.includes("sigma") ||
+    s.includes("merck") ||
+    s.includes("promega") ||
+    s.includes("qiagen") ||
+    s.includes("idt") ||
+    s.includes("atcc")
+  )
+    return "Supplier";
+  return "Other";
+}
 
 function Empty({ label }: { label: string }) {
   return (
@@ -113,7 +130,12 @@ export function PlanTabs({
                 {plan.materials.materials.map((m, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{m.item_name}</TableCell>
-                    <TableCell>{m.supplier}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <SourceBadge source={inferSupplierTag(m.supplier)} />
+                        <span>{m.supplier}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{m.catalog_number}</TableCell>
                     <TableCell className="text-muted-foreground">{m.purpose}</TableCell>
                     <TableCell>{m.quantity_estimate}</TableCell>
