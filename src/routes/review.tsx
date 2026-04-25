@@ -152,6 +152,33 @@ function ReviewScreen() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  // Part F — pre-fill DA findings into the review form on first mount when
+  // (a) the user has run Devil's Advocate and (b) hasn't already entered any
+  // manual content yet. Banner is shown whenever the prefill happened in this
+  // session. The user may freely edit / clear any field afterwards.
+  const [daBannerOpen, setDaBannerOpen] = useState(false);
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    if (!s.devils_advocate?.critiques?.length) return;
+    const existing = s.review.corrections;
+    const hasUserContent = existing.some(
+      (c) => c.notes.trim() || c.issue_tags.length > 0 || c.rating > 0,
+    );
+    if (hasUserContent) {
+      // User already has corrections — don't overwrite, but still surface banner
+      // so they know DA results are available.
+      setDaBannerOpen(true);
+      prefilledRef.current = true;
+      return;
+    }
+    const mapped = mapDAToReviewCorrections(s.devils_advocate);
+    if (!mapped.length) return;
+    for (const c of mapped) s.addCorrection(c);
+    setDaBannerOpen(true);
+    prefilledRef.current = true;
+  }, [s]);
 
   const fProto = useServerFn(generateProtocol);
   const fMat = useServerFn(generateMaterials);
