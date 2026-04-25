@@ -75,7 +75,7 @@ function PlanScreen() {
   if (!p) {
     return (
       <div className="min-h-screen">
-        <AppHeader stage="plan" />
+        <AppHeader stage="plan" current="plan" />
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <p className="text-muted-foreground">No plan available yet.</p>
           <Button asChild className="mt-4">
@@ -90,7 +90,7 @@ function PlanScreen() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader stage="plan" />
+      <AppHeader stage="plan" current="plan" />
       <NavArrows current="plan" />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">

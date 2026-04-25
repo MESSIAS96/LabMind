@@ -189,7 +189,7 @@ function ReviewScreen() {
   if (!s.parsed_hypothesis) {
     return (
       <div className="min-h-screen">
-        <AppHeader stage="review" />
+        <AppHeader stage="review" current="review" />
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <p className="text-muted-foreground">Generate a plan first.</p>
           <Button asChild className="mt-4">
@@ -291,7 +291,7 @@ function ReviewScreen() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader stage="review" />
+      <AppHeader stage="review" current="review" />
       <NavArrows current="review" />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">

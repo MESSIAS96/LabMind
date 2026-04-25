@@ -36,7 +36,7 @@ function ParsedScreen() {
   if (!p) {
     return (
       <div className="min-h-screen">
-        <AppHeader stage="qc" />
+        <AppHeader stage="qc" current="parsed" />
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <p className="text-muted-foreground">No parsed hypothesis yet.</p>
           <Button asChild className="mt-4">
@@ -53,7 +53,7 @@ function ParsedScreen() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader stage="qc" />
+      <AppHeader stage="qc" current="parsed" />
       <NavArrows current="parsed" />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Parsed hypothesis</h1>

@@ -165,7 +165,7 @@ function QCScreen() {
   if (!s.parsed_hypothesis) {
     return (
       <div className="min-h-screen">
-        <AppHeader stage="qc" />
+        <AppHeader stage="qc" current="qc" />
         <NavArrows current="qc" />
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <p className="text-muted-foreground">Start from the hypothesis screen.</p>
@@ -180,7 +180,7 @@ function QCScreen() {
   if (!ready) {
     return (
       <div className="min-h-screen">
-        <AppHeader stage="qc" />
+        <AppHeader stage="qc" current="qc" />
         <NavArrows current="qc" />
         <main className="mx-auto max-w-2xl px-6 py-12">
           <h1 className="text-2xl font-semibold tracking-tight">Searching scientific sources…</h1>
@@ -263,7 +263,7 @@ function QCScreen() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader stage="qc" />
+      <AppHeader stage="qc" current="qc" />
       <NavArrows current="qc" />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Literature Quality Control</h1>

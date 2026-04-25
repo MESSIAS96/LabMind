@@ -77,7 +77,7 @@ function InputScreen() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader stage="input" />
+      <AppHeader stage="input" current="input" />
       <NavArrows current="input" />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">
