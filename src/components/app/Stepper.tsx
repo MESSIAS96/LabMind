@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Check, FlaskConical, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
-import { DemoToggle } from "./DemoToggle";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
 
@@ -84,7 +83,6 @@ export function AppHeader({ stage }: { stage?: Stage }) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <DemoToggle />
           <ThemeToggle />
           <Button
             asChild
