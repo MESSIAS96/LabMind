@@ -240,7 +240,14 @@ export function PlanTabs({
         {!plan.validation ? (
           <Empty label="Validation not generated yet." />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-4">
+            {typeof plan.validation.strength_score === "number" && (
+              <ValidationStrength
+                score={plan.validation.strength_score}
+                rationale={plan.validation.strength_rationale}
+              />
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
             <Stat label="Primary endpoint" value={plan.validation.primary_endpoint} highlight />
             <Section title="Secondary endpoints" items={plan.validation.secondary_endpoints} />
             <Section title="Controls" items={plan.validation.controls} />
@@ -256,6 +263,7 @@ export function PlanTabs({
                 Failure criteria
               </div>
               <p className="mt-2 text-sm">{plan.validation.failure_criteria}</p>
+            </div>
             </div>
           </div>
         )}
