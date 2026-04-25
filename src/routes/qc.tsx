@@ -343,6 +343,7 @@ function QCScreen() {
           {genStage && <Spinner label={genStage} />}
         </div>
       </main>
+      <AppFooter />
     </div>
   );
 }
