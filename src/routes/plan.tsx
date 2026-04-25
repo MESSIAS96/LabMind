@@ -62,12 +62,7 @@ function PlanScreen() {
         <div className="mt-8">
           <PlanTabs
             plan={s.experiment_plan}
-            sources={{
-              protocol: s.tavily_protocol_results,
-              supplier: s.tavily_supplier_results,
-              validation: s.tavily_validation_results,
-              scholar: s.semantic_scholar_results,
-            }}
+            retrieval={s.retrieval_results}
           />
         </div>
       </main>
