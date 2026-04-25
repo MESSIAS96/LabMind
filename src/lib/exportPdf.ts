@@ -280,7 +280,7 @@ export async function exportToPDF(state: AppState) {
     const b = state.experiment_plan.budget;
     autoTable(doc, {
       startY: y,
-      head: [["Category", "Item", "Qty", "Unit cost", "Total"]],
+      head: [["Category", "Item", "Qty", "Unit cost (€)", "Total (€)"]],
       body: [
         ...b.budget_lines.map((l) => [l.category, l.item, l.quantity, l.unit_cost, l.total]),
         ["Materials subtotal", "", "", "", b.subtotal_materials],

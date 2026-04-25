@@ -174,8 +174,8 @@ export function PlanTabs({
                     <TableHead>Category</TableHead>
                     <TableHead>Item</TableHead>
                     <TableHead>Qty</TableHead>
-                    <TableHead>Unit cost</TableHead>
-                    <TableHead>Total</TableHead>
+                    <TableHead>Unit cost (€)</TableHead>
+                    <TableHead>Total (€)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
