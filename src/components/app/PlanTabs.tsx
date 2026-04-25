@@ -15,6 +15,25 @@ import {
 } from "@/components/ui/accordion";
 import type { ExperimentPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { RetrievalResults } from "@/lib/types";
+import { SourceBadge } from "@/components/app/SourceBadge";
+import type { SourceTag } from "@/lib/types";
+
+function inferSupplierTag(supplier: string): SourceTag {
+  const s = supplier.toLowerCase();
+  if (s.includes("addgene")) return "Addgene";
+  if (
+    s.includes("thermo") ||
+    s.includes("sigma") ||
+    s.includes("merck") ||
+    s.includes("promega") ||
+    s.includes("qiagen") ||
+    s.includes("idt") ||
+    s.includes("atcc")
+  )
+    return "Supplier";
+  return "Other";
+}
 
 function Empty({ label }: { label: string }) {
   return (
@@ -32,10 +51,10 @@ const CONFIDENCE_STYLE: Record<string, string> = {
 
 export function PlanTabs({
   plan,
-  sources,
+  retrieval,
 }: {
   plan: ExperimentPlan;
-  sources: { protocol: { title: string; url: string }[]; supplier: { title: string; url: string }[]; validation: { title: string; url: string }[]; scholar: { title: string; url: string }[] };
+  retrieval: RetrievalResults;
 }) {
   return (
     <Tabs defaultValue="protocol" className="w-full">
@@ -111,7 +130,12 @@ export function PlanTabs({
                 {plan.materials.materials.map((m, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{m.item_name}</TableCell>
-                    <TableCell>{m.supplier}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <SourceBadge source={inferSupplierTag(m.supplier)} />
+                        <span>{m.supplier}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{m.catalog_number}</TableCell>
                     <TableCell className="text-muted-foreground">{m.purpose}</TableCell>
                     <TableCell>{m.quantity_estimate}</TableCell>
@@ -239,10 +263,11 @@ export function PlanTabs({
 
       <TabsContent value="sources" className="mt-6">
         <div className="space-y-6">
-          <SourceList title="Protocol sources" items={sources.protocol} />
-          <SourceList title="Supplier sources" items={sources.supplier} />
-          <SourceList title="Validation sources" items={sources.validation} />
-          <SourceList title="Literature (Semantic Scholar)" items={sources.scholar} />
+          <SourceList title="Protocol sources" items={retrieval.protocolSources} />
+          <SourceList title="Literature" items={retrieval.literatureSources} />
+          <SourceList title="Supplier references" items={retrieval.supplierSources} />
+          <SourceList title="Plasmid / cell line references" items={retrieval.plasmidSources} />
+          <SourceList title="Validation references" items={retrieval.validationSources} />
         </div>
       </TabsContent>
     </Tabs>
@@ -305,7 +330,7 @@ function SourceList({
   items,
 }: {
   title: string;
-  items: { title: string; url: string }[];
+  items: { title: string; url: string; source?: import("@/lib/types").SourceTag }[];
 }) {
   return (
     <div>
@@ -326,7 +351,10 @@ function SourceList({
                 rel="noreferrer"
                 className="block rounded-md border bg-card p-3 text-sm hover:border-primary/60"
               >
-                <div className="font-medium leading-snug">{s.title || s.url}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {s.source && <SourceBadge source={s.source} />}
+                  <div className="font-medium leading-snug">{s.title || s.url}</div>
+                </div>
                 <div className="mt-0.5 truncate text-xs text-muted-foreground">{s.url}</div>
               </a>
             </li>

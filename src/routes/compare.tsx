@@ -27,12 +27,7 @@ function CompareScreen() {
     );
   }
 
-  const sources = {
-    protocol: s.tavily_protocol_results,
-    supplier: s.tavily_supplier_results,
-    validation: s.tavily_validation_results,
-    scholar: s.semantic_scholar_results,
-  };
+  const retrieval = s.retrieval_results;
 
   return (
     <div className="min-h-screen">
@@ -50,7 +45,7 @@ function CompareScreen() {
               Original
             </div>
             <div className="rounded-xl border bg-card p-4">
-              <PlanTabs plan={s.experiment_plan} sources={sources} />
+              <PlanTabs plan={s.experiment_plan} retrieval={retrieval} />
             </div>
           </div>
           <div>
@@ -59,7 +54,7 @@ function CompareScreen() {
               Improved
             </div>
             <div className="rounded-xl border-2 border-[oklch(0.6_0.13_150)/0.5] bg-[oklch(0.6_0.13_150)/0.04] p-4">
-              <PlanTabs plan={regen} sources={sources} />
+              <PlanTabs plan={regen} retrieval={retrieval} />
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import type {
   Validation,
   Correction,
   ExperimentPlan,
+  RetrievalResults,
 } from "@/lib/types";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -109,13 +110,291 @@ async function tavilySearch(
   }
 }
 
+/* -------------------- Tier 1: Direct API helpers -------------------- */
+
+async function searchProtocolsIO(query: string): Promise<SearchResult[]> {
+  const token = process.env.PROTOCOLS_IO_TOKEN;
+  try {
+    const url = `https://www.protocols.io/api/v4/protocols?filter=public&key=${encodeURIComponent(query)}&order_field=activity&order_dir=desc&page_size=5`;
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = data?.items ?? [];
+    return items.map((p: {
+      title?: string;
+      uri?: string;
+      authors?: { name?: string }[];
+      published_on?: number | string;
+      doi?: string;
+      steps_count?: number;
+    }) => ({
+      title: p.title ?? "Untitled protocol",
+      url: p.uri ? `https://www.protocols.io${p.uri}` : "https://www.protocols.io",
+      content: `${p.authors?.map((a) => a.name).filter(Boolean).join(", ") ?? ""}${p.doi ? ` · DOI ${p.doi}` : ""}${p.steps_count ? ` · ${p.steps_count} steps` : ""}`,
+      source: "protocols.io" as const,
+      meta: {
+        authors: p.authors?.map((a) => a.name).filter(Boolean).join(", "),
+        doi: p.doi,
+        steps_count: p.steps_count,
+      },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Minimal XML extractor: pulls first occurrence of <tag>...</tag> inside a chunk. */
+function pickTag(xml: string, tag: string): string | undefined {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`);
+  const m = xml.match(re);
+  if (!m) return undefined;
+  return m[1]
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .trim();
+}
+
+async function searchPubMed(query: string): Promise<SearchResult[]> {
+  try {
+    const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=5&retmode=json&usehistory=y`;
+    const sRes = await fetch(searchUrl);
+    if (!sRes.ok) return [];
+    const sData = await sRes.json();
+    const ids: string[] = sData?.esearchresult?.idlist ?? [];
+    if (ids.length === 0) return [];
+    const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(",")}&retmode=xml&rettype=abstract`;
+    const fRes = await fetch(fetchUrl);
+    if (!fRes.ok) return [];
+    const xml = await fRes.text();
+    // Split by <PubmedArticle>
+    const articles = xml.split(/<PubmedArticle[\s>]/).slice(1);
+    return articles.map((chunk, i) => {
+      const title = pickTag(chunk, "ArticleTitle") ?? "No title";
+      const abstract = pickTag(chunk, "AbstractText") ?? "";
+      const pmid = pickTag(chunk, "PMID") ?? ids[i];
+      const year = pickTag(chunk, "Year");
+      return {
+        title: `${title}${year ? ` (${year})` : ""}`,
+        url: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : "https://pubmed.ncbi.nlm.nih.gov",
+        content: abstract.slice(0, 500),
+        source: "PubMed" as const,
+        meta: { pmid, year },
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function searchSemanticScholarRaw(query: string): Promise<SearchResult[]> {
+  try {
+    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=title,abstract,url,year,authors,citationCount&limit=5`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data ?? []).map((p: {
+      title?: string;
+      abstract?: string;
+      url?: string;
+      year?: number;
+      authors?: { name?: string }[];
+      citationCount?: number;
+    }) => ({
+      title: `${p.title ?? "Untitled"}${p.year ? ` (${p.year})` : ""}`,
+      url: p.url ?? "",
+      content: ((p.abstract ?? "") + (p.authors?.length ? ` — ${p.authors.map((a) => a.name).filter(Boolean).join(", ")}` : "")).slice(0, 500),
+      source: "Semantic Scholar" as const,
+      meta: {
+        year: p.year,
+        authors: p.authors?.map((a) => a.name).filter(Boolean).join(", "),
+        citations: p.citationCount,
+      },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function searchAddgene(gene: string): Promise<SearchResult[]> {
+  try {
+    const url = `https://www.addgene.org/api/catalog/plasmids/?query=${encodeURIComponent(gene)}&page_size=5`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = data?.results ?? [];
+    return items.map((p: {
+      name?: string;
+      addgene_id?: number | string;
+      purpose?: string;
+      depositor?: string;
+    }) => ({
+      title: p.name ?? "Untitled plasmid",
+      url: p.addgene_id ? `https://www.addgene.org/${p.addgene_id}/` : "https://www.addgene.org",
+      content: `${p.purpose ?? ""}${p.depositor ? ` · Depositor: ${p.depositor}` : ""}`.slice(0, 500),
+      source: "Addgene" as const,
+      meta: { addgene_id: p.addgene_id },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function tavilySearchProtocolRepos(queries: string[]): Promise<SearchResult[]> {
+  const out: SearchResult[] = [];
+  for (const q of queries.slice(0, 3)) {
+    const r = await tavilySearch(
+      q,
+      ["bio-protocol.org", "jove.com", "openwetware.org", "nature.com", "protocols.io"],
+      "advanced",
+      5,
+    );
+    out.push(...r.map((x) => ({ ...x, source: "Protocol Repository" as const })));
+  }
+  return out;
+}
+
+async function tavilySearchSuppliersHelper(reagentQueries: string[]): Promise<SearchResult[]> {
+  const out: SearchResult[] = [];
+  for (const q of reagentQueries.slice(0, 5)) {
+    const r = await tavilySearch(
+      q,
+      ["thermofisher.com", "sigmaaldrich.com", "promega.com", "qiagen.com", "idtdna.com", "atcc.org"],
+      "advanced",
+      5,
+    );
+    out.push(...r.map((x) => ({ ...x, source: "Supplier" as const })));
+  }
+  return out;
+}
+
+async function tavilySearchValidationHelper(query: string): Promise<SearchResult[]> {
+  const r = await tavilySearch(
+    query,
+    ["ncbi.nlm.nih.gov", "nature.com", "thermofisher.com", "promega.com", "qiagen.com"],
+    "basic",
+    5,
+  );
+  return r.map((x) => ({ ...x, source: "Validation Reference" as const }));
+}
+
+/* -------------------- Tier 3: Orchestrated retrieval -------------------- */
+
+const MOLECULAR_TYPES = new Set(["Molecular Biology", "Cell Biology"]);
+
+export const runFullRetrieval = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: { parsed: ParsedHypothesis; experiment_type: string }) => input,
+  )
+  .handler(async ({ data }): Promise<RetrievalResults> => {
+    const p = data.parsed;
+    const baseQuery = `${p.intervention} ${p.assay_method} ${p.model_system}`.trim();
+    const entities = p.key_entities && p.key_entities.length ? p.key_entities : [p.intervention];
+    const searchQueries = p.search_queries && p.search_queries.length ? p.search_queries : [baseQuery];
+    const wantsAddgene = MOLECULAR_TYPES.has(data.experiment_type);
+
+    const [
+      protocolsIO,
+      pubMed,
+      scholar,
+      addgene,
+      tavilyProtocols,
+      tavilySuppliers,
+      tavilyValidation,
+    ] = await Promise.allSettled([
+      searchProtocolsIO(baseQuery),
+      searchPubMed(baseQuery),
+      searchSemanticScholarRaw(baseQuery),
+      wantsAddgene ? searchAddgene(entities[0] ?? baseQuery) : Promise.resolve<SearchResult[]>([]),
+      tavilySearchProtocolRepos(searchQueries),
+      tavilySearchSuppliersHelper(
+        entities.map((e) => `${e} ${p.model_system} catalog`),
+      ),
+      tavilySearchValidationHelper(`${p.assay_method} validation controls ${p.model_system}`),
+    ]);
+
+    const get = <T>(r: PromiseSettledResult<T[]>): T[] =>
+      r.status === "fulfilled" ? r.value : [];
+
+    return {
+      protocolSources: [...get(protocolsIO), ...get(tavilyProtocols)],
+      literatureSources: [...get(pubMed), ...get(scholar)],
+      supplierSources: get(tavilySuppliers),
+      plasmidSources: get(addgene),
+      validationSources: get(tavilyValidation),
+    };
+  });
+
+/* Per-source server functions so the client can show live status indicators. */
+
+export const fetchProtocolsIO = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return { results: await searchProtocolsIO(`${p.intervention} ${p.assay_method} ${p.model_system}`) };
+  });
+
+export const fetchPubMed = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return { results: await searchPubMed(`${p.intervention} ${p.assay_method} ${p.model_system}`) };
+  });
+
+export const fetchAddgene = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis; experiment_type: string }) => input)
+  .handler(async ({ data }) => {
+    if (!MOLECULAR_TYPES.has(data.experiment_type)) return { results: [] as SearchResult[] };
+    const entity = data.parsed.key_entities?.[0] ?? data.parsed.intervention;
+    return { results: await searchAddgene(entity) };
+  });
+
+export const fetchTavilyProtocols = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    const queries = p.search_queries?.length
+      ? p.search_queries
+      : [`${p.intervention} ${p.assay_method} ${p.model_system}`];
+    return { results: await tavilySearchProtocolRepos(queries) };
+  });
+
+export const fetchTavilySuppliers = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    const ents = p.key_entities?.length ? p.key_entities : [p.intervention];
+    return {
+      results: await tavilySearchSuppliersHelper(ents.map((e) => `${e} ${p.model_system} catalog`)),
+    };
+  });
+
+export const fetchTavilyValidation = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return {
+      results: await tavilySearchValidationHelper(
+        `${p.assay_method} validation controls ${p.model_system}`,
+      ),
+    };
+  });
+
 /* -------------------- Server functions -------------------- */
 
 export const parseHypothesis = createServerFn({ method: "POST" })
   .inputValidator((input: { hypothesis: string; experiment_type: string }) => input)
   .handler(async ({ data }) => {
     const parsed = await callAIJson<ParsedHypothesis>(
-      "You are a bioscience research analyst. Extract structured fields from the user's hypothesis. Be specific and concise; use 'unspecified' when truly absent.",
+      "You are a bioscience research analyst. Extract structured fields from the user's hypothesis. Be specific and concise; use 'unspecified' when truly absent. Also propose 2-4 key_entities (genes, plasmids, reagents, cell lines) and 2-3 search_queries that would surface the most relevant protocols.",
       `Hypothesis: ${data.hypothesis}\nExperiment type: ${data.experiment_type}`,
       "parsed_hypothesis",
       {
@@ -129,6 +408,8 @@ export const parseHypothesis = createServerFn({ method: "POST" })
           control_condition: { type: "string" },
           duration: { type: "string" },
           assay_method: { type: "string" },
+          key_entities: { type: "array", items: { type: "string" } },
+          search_queries: { type: "array", items: { type: "string" } },
         },
         required: [
           "intervention",

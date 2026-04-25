@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApp } from "@/lib/store";
-import { parseHypothesis, searchProtocols, searchSuppliers, searchValidation, searchSemanticScholar, classifyNovelty } from "@/server/ai.functions";
+import { parseHypothesis } from "@/server/ai.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -33,11 +33,6 @@ function InputScreen() {
   const [stage, setStage] = useState<string | null>(null);
 
   const fParse = useServerFn(parseHypothesis);
-  const fProto = useServerFn(searchProtocols);
-  const fSup = useServerFn(searchSuppliers);
-  const fVal = useServerFn(searchValidation);
-  const fScholar = useServerFn(searchSemanticScholar);
-  const fNov = useServerFn(classifyNovelty);
 
   const run = async () => {
     if (!s.input_hypothesis.trim()) {
@@ -50,29 +45,16 @@ function InputScreen() {
         data: { hypothesis: s.input_hypothesis, experiment_type: s.experiment_type },
       });
       s.set("parsed_hypothesis", parsed);
+      // Reset prior retrieval & QC so QC screen knows to re-run.
+      s.set("retrieval_results", {
+        protocolSources: [],
+        literatureSources: [],
+        supplierSources: [],
+        plasmidSources: [],
+        validationSources: [],
+      });
+      s.set("literature_qc", undefined);
       navigate({ to: "/parsed" });
-
-      // Kick off background searches; QC screen will await
-      void (async () => {
-        const [proto, sup, val, scholar] = await Promise.all([
-          fProto({ data: { parsed } }),
-          fSup({ data: { parsed, reagents: [parsed.intervention] } }),
-          fVal({ data: { parsed } }),
-          fScholar({ data: { parsed } }),
-        ]);
-        s.set("tavily_protocol_results", proto.results);
-        s.set("tavily_supplier_results", sup.results);
-        s.set("tavily_validation_results", val.results);
-        s.set("semantic_scholar_results", scholar.results);
-        const qc = await fNov({
-          data: {
-            parsed,
-            tavily: proto.results,
-            scholar: scholar.results,
-          },
-        });
-        s.set("literature_qc", qc);
-      })();
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Failed to parse hypothesis");

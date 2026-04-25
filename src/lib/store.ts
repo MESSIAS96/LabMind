@@ -7,6 +7,7 @@ import type {
   LiteratureQC,
   ExperimentPlan,
   Correction,
+  RetrievalResults,
 } from "./types";
 
 const SAMPLE =
@@ -20,13 +21,18 @@ type StoreState = AppState & {
   reset: () => void;
 };
 
+const emptyRetrieval: RetrievalResults = {
+  protocolSources: [],
+  literatureSources: [],
+  supplierSources: [],
+  plasmidSources: [],
+  validationSources: [],
+};
+
 const initial: AppState = {
   input_hypothesis: SAMPLE,
   experiment_type: "Cell Biology",
-  tavily_protocol_results: [],
-  tavily_supplier_results: [],
-  tavily_validation_results: [],
-  semantic_scholar_results: [],
+  retrieval_results: emptyRetrieval,
   experiment_plan: {},
   review: { corrections: [] },
 };
@@ -57,7 +63,7 @@ export const useApp = create<StoreState>()(
       reset: () => set({ ...initial }),
     }),
     {
-      name: "ai-scientist-state",
+      name: "ai-scientist-state-v2",
       storage: createJSONStorage(() =>
         isBrowser ? sessionStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} },
       ),
@@ -65,4 +71,4 @@ export const useApp = create<StoreState>()(
   ),
 );
 
-export type { ParsedHypothesis, SearchResult, LiteratureQC, ExperimentPlan, Correction };
+export type { ParsedHypothesis, SearchResult, LiteratureQC, ExperimentPlan, Correction, RetrievalResults };

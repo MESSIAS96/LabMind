@@ -158,7 +158,7 @@ function ReviewScreen() {
       const protocol = await fProto({
         data: {
           parsed: s.parsed_hypothesis,
-          protocol_evidence: s.tavily_protocol_results,
+          protocol_evidence: s.retrieval_results.protocolSources,
           corrections: cors,
         },
       });
@@ -168,7 +168,10 @@ function ReviewScreen() {
       const materials = await fMat({
         data: {
           parsed: s.parsed_hypothesis,
-          supplier_evidence: s.tavily_supplier_results,
+          supplier_evidence: [
+            ...s.retrieval_results.supplierSources,
+            ...s.retrieval_results.plasmidSources,
+          ],
           corrections: cors,
         },
       });
@@ -200,7 +203,7 @@ function ReviewScreen() {
       const validation = await fVal({
         data: {
           parsed: s.parsed_hypothesis,
-          validation_evidence: s.tavily_validation_results,
+          validation_evidence: s.retrieval_results.validationSources,
           corrections: cors,
         },
       });
