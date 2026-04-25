@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReviewRouteImport } from './routes/review'
+import { Route as QcRouteImport } from './routes/qc'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as ParsedRouteImport } from './routes/parsed'
 import { Route as InputRouteImport } from './routes/input'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ReviewRoute = ReviewRouteImport.update({
   id: '/review',
   path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QcRoute = QcRouteImport.update({
+  id: '/qc',
+  path: '/qc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanRoute = PlanRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/input': typeof InputRoute
   '/parsed': typeof ParsedRoute
   '/plan': typeof PlanRoute
+  '/qc': typeof QcRoute
   '/review': typeof ReviewRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/input': typeof InputRoute
   '/parsed': typeof ParsedRoute
   '/plan': typeof PlanRoute
+  '/qc': typeof QcRoute
   '/review': typeof ReviewRoute
 }
 export interface FileRoutesById {
@@ -70,14 +78,30 @@ export interface FileRoutesById {
   '/input': typeof InputRoute
   '/parsed': typeof ParsedRoute
   '/plan': typeof PlanRoute
+  '/qc': typeof QcRoute
   '/review': typeof ReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compare' | '/input' | '/parsed' | '/plan' | '/review'
+  fullPaths:
+    | '/'
+    | '/compare'
+    | '/input'
+    | '/parsed'
+    | '/plan'
+    | '/qc'
+    | '/review'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compare' | '/input' | '/parsed' | '/plan' | '/review'
-  id: '__root__' | '/' | '/compare' | '/input' | '/parsed' | '/plan' | '/review'
+  to: '/' | '/compare' | '/input' | '/parsed' | '/plan' | '/qc' | '/review'
+  id:
+    | '__root__'
+    | '/'
+    | '/compare'
+    | '/input'
+    | '/parsed'
+    | '/plan'
+    | '/qc'
+    | '/review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -86,6 +110,7 @@ export interface RootRouteChildren {
   InputRoute: typeof InputRoute
   ParsedRoute: typeof ParsedRoute
   PlanRoute: typeof PlanRoute
+  QcRoute: typeof QcRoute
   ReviewRoute: typeof ReviewRoute
 }
 
@@ -96,6 +121,13 @@ declare module '@tanstack/react-router' {
       path: '/review'
       fullPath: '/review'
       preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qc': {
+      id: '/qc'
+      path: '/qc'
+      fullPath: '/qc'
+      preLoaderRoute: typeof QcRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan': {
@@ -142,17 +174,9 @@ const rootRouteChildren: RootRouteChildren = {
   InputRoute: InputRoute,
   ParsedRoute: ParsedRoute,
   PlanRoute: PlanRoute,
+  QcRoute: QcRoute,
   ReviewRoute: ReviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
