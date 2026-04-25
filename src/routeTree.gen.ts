@@ -9,8 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as QcRouteImport } from './routes/qc'
+import { Route as ParsedRouteImport } from './routes/parsed'
+import { Route as InputRouteImport } from './routes/input'
 import { Route as IndexRouteImport } from './routes/index'
 
+const QcRoute = QcRouteImport.update({
+  id: '/qc',
+  path: '/qc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParsedRoute = ParsedRouteImport.update({
+  id: '/parsed',
+  path: '/parsed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InputRoute = InputRouteImport.update({
+  id: '/input',
+  path: '/input',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +37,61 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/input': typeof InputRoute
+  '/parsed': typeof ParsedRoute
+  '/qc': typeof QcRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/input': typeof InputRoute
+  '/parsed': typeof ParsedRoute
+  '/qc': typeof QcRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/input': typeof InputRoute
+  '/parsed': typeof ParsedRoute
+  '/qc': typeof QcRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/input' | '/parsed' | '/qc'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/input' | '/parsed' | '/qc'
+  id: '__root__' | '/' | '/input' | '/parsed' | '/qc'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InputRoute: typeof InputRoute
+  ParsedRoute: typeof ParsedRoute
+  QcRoute: typeof QcRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/qc': {
+      id: '/qc'
+      path: '/qc'
+      fullPath: '/qc'
+      preLoaderRoute: typeof QcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parsed': {
+      id: '/parsed'
+      path: '/parsed'
+      fullPath: '/parsed'
+      preLoaderRoute: typeof ParsedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/input': {
+      id: '/input'
+      path: '/input'
+      fullPath: '/input'
+      preLoaderRoute: typeof InputRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +104,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InputRoute: InputRoute,
+  ParsedRoute: ParsedRoute,
+  QcRoute: QcRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
