@@ -7,6 +7,8 @@ export type ParsedHypothesis = {
   control_condition: string;
   duration: string;
   assay_method: string;
+  key_entities?: string[];
+  search_queries?: string[];
 };
 
 export type SearchResult = {
