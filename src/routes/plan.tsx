@@ -1,11 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { AppFooter } from "@/components/app/AppFooter";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
 import { PlanTabs } from "@/components/app/PlanTabs";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
+import { DevilsAdvocatePanel, ConfidenceStars } from "@/components/app/DevilsAdvocate";
 import { Download, MessageSquare } from "lucide-react";
-import { exportPlanPdf } from "@/lib/exportPdf";
+import { downloadPlanText } from "@/lib/exportPlan";
+import { useServerFn } from "@tanstack/react-start";
+import { runDevilsAdvocate } from "@/server/ai.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/plan")({
   head: () => ({ meta: [{ title: "Experiment plan — AI Scientist" }] }),
@@ -16,6 +22,28 @@ function PlanScreen() {
   const s = useApp();
   const navigate = useNavigate();
   const p = s.parsed_hypothesis;
+  const [daLoading, setDaLoading] = useState(false);
+  const fDA = useServerFn(runDevilsAdvocate);
+
+  const runDA = async () => {
+    if (!p) return;
+    setDaLoading(true);
+    try {
+      const review = await fDA({
+        data: {
+          parsed: p,
+          plan: s.experiment_plan,
+          protocol_evidence: s.retrieval_results.protocolSources.slice(0, 3),
+        },
+      });
+      s.set("devils_advocate", review);
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Devil's Advocate failed");
+    } finally {
+      setDaLoading(false);
+    }
+  };
 
   if (!p) {
     return (
@@ -44,19 +72,33 @@ function PlanScreen() {
               {s.literature_qc && (
                 <NoveltyBadge signal={s.literature_qc.novelty_signal} compact />
               )}
+              {s.devils_advocate && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2 py-0.5 text-xs">
+                  <span className="text-muted-foreground">DA:</span>
+                  <ConfidenceStars score={s.devils_advocate.overall_confidence} compact />
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">
                 Experiment type: {s.experiment_type}
               </span>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => exportPlanPdf(s)}>
-              <Download className="mr-2 h-4 w-4" /> Export PDF
+            <Button variant="outline" onClick={() => downloadPlanText(s)}>
+              <Download className="mr-2 h-4 w-4" /> Export plan (.txt)
             </Button>
             <Button onClick={() => navigate({ to: "/review" })}>
               <MessageSquare className="mr-2 h-4 w-4" /> Scientist Review
             </Button>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <DevilsAdvocatePanel
+            review={s.devils_advocate}
+            loading={daLoading}
+            onRun={runDA}
+          />
         </div>
 
         <div className="mt-8">
@@ -66,6 +108,7 @@ function PlanScreen() {
           />
         </div>
       </main>
+      <AppFooter />
     </div>
   );
 }
