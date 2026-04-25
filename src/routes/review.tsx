@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,6 +16,8 @@ import {
   FileSpreadsheet,
   Image as ImageIcon,
   FileType,
+  Bot,
+  Info,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -29,6 +32,8 @@ import {
 import { Spinner } from "@/components/app/Spinner";
 import { toast } from "sonner";
 import type { Correction } from "@/lib/types";
+import { useEffect, useRef } from "react";
+import { mapDAToReviewCorrections } from "@/lib/daToReview";
 import {
   DropdownMenu,
   DropdownMenuContent,
