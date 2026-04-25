@@ -8,6 +8,7 @@ import type {
   ExperimentPlan,
   Correction,
   RetrievalResults,
+  DevilsAdvocateReview,
 } from "./types";
 
 const SAMPLE =
@@ -72,3 +73,4 @@ export const useApp = create<StoreState>()(
 );
 
 export type { ParsedHypothesis, SearchResult, LiteratureQC, ExperimentPlan, Correction, RetrievalResults };
+export type { DevilsAdvocateReview };
