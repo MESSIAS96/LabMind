@@ -82,7 +82,7 @@ export function buildPlanText(state: AppState): string {
 
   if (plan.budget) {
     out += section("Budget");
-    out += line("Category | Item | Qty | Unit cost | Total");
+    out += line("Category | Item | Qty | Unit cost (€) | Total (€)");
     out += line("-".repeat(72));
     plan.budget.budget_lines.forEach((b) => {
       out += line(`${b.category} | ${b.item} | ${b.quantity} | ${b.unit_cost} | ${b.total}`);
