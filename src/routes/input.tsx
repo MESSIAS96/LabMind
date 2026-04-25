@@ -18,6 +18,8 @@ import { useApp } from "@/lib/store";
 import { parseHypothesis } from "@/server/ai.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useDemoAutoAdvance } from "@/components/app/DemoToggle";
+import { AppFooter } from "@/components/app/AppFooter";
 
 export const Route = createFileRoute("/input")({
   head: () => ({
@@ -33,6 +35,11 @@ function InputScreen() {
   const [stage, setStage] = useState<string | null>(null);
 
   const fParse = useServerFn(parseHypothesis);
+
+  // Demo mode: auto-submit after 2s if hypothesis is non-empty.
+  useDemoAutoAdvance(!!s.input_hypothesis.trim() && !stage, 2000, () => {
+    void run();
+  });
 
   const run = async () => {
     if (!s.input_hypothesis.trim()) {
@@ -165,6 +172,7 @@ function InputScreen() {
           </div>
         </div>
       </main>
+      <AppFooter />
     </div>
   );
 }

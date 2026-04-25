@@ -240,7 +240,14 @@ export function PlanTabs({
         {!plan.validation ? (
           <Empty label="Validation not generated yet." />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-4">
+            {typeof plan.validation.strength_score === "number" && (
+              <ValidationStrength
+                score={plan.validation.strength_score}
+                rationale={plan.validation.strength_rationale}
+              />
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
             <Stat label="Primary endpoint" value={plan.validation.primary_endpoint} highlight />
             <Section title="Secondary endpoints" items={plan.validation.secondary_endpoints} />
             <Section title="Controls" items={plan.validation.controls} />
@@ -256,6 +263,7 @@ export function PlanTabs({
                 Failure criteria
               </div>
               <p className="mt-2 text-sm">{plan.validation.failure_criteria}</p>
+            </div>
             </div>
           </div>
         )}
@@ -361,6 +369,52 @@ function SourceList({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function ValidationStrength({
+  score,
+  rationale,
+}: {
+  score: number;
+  rationale?: string;
+}) {
+  const clamped = Math.max(1, Math.min(5, Math.round(score)));
+  const pct = (clamped / 5) * 100;
+  const label =
+    clamped >= 5
+      ? "Gold standard"
+      : clamped >= 4
+        ? "Strong"
+        : clamped === 3
+          ? "Reasonable — some gaps"
+          : clamped === 2
+            ? "Weak controls"
+            : "Insufficient";
+  const tone =
+    clamped >= 4
+      ? "bg-[oklch(0.6_0.14_150)]"
+      : clamped === 3
+        ? "bg-[oklch(0.7_0.16_70)]"
+        : "bg-[oklch(0.6_0.2_27)]";
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Validation strength
+        </div>
+        <div className="text-sm font-semibold">
+          {clamped}/5 · <span className="text-muted-foreground font-normal">{label}</span>
+        </div>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full transition-all", tone)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {rationale && <p className="mt-2 text-xs text-muted-foreground">{rationale}</p>}
     </div>
   );
 }

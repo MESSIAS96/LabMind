@@ -122,6 +122,8 @@ export type Validation = {
   readouts: string[];
   success_criteria: string;
   failure_criteria: string;
+  strength_score?: number;
+  strength_rationale?: string;
 };
 
 export type ExperimentPlan = {
@@ -130,6 +132,26 @@ export type ExperimentPlan = {
   budget?: Budget;
   timeline?: Timeline;
   validation?: Validation;
+};
+
+export type DevilsAdvocateIssueType =
+  | "RISK"
+  | "ASSUMPTION"
+  | "MISSING"
+  | "UNREALISTIC"
+  | "ALTERNATIVE";
+
+export type DevilsAdvocateCritique = {
+  section: "Protocol" | "Materials" | "Budget" | "Timeline" | "Validation";
+  issue_type: DevilsAdvocateIssueType;
+  critique: string;
+  suggestion: string;
+};
+
+export type DevilsAdvocateReview = {
+  overall_confidence: number;
+  verdict: string;
+  critiques: DevilsAdvocateCritique[];
 };
 
 export type Correction = {
@@ -149,6 +171,7 @@ export type AppState = {
   retrieval_results: RetrievalResults;
   literature_qc?: LiteratureQC;
   experiment_plan: ExperimentPlan;
+  devils_advocate?: DevilsAdvocateReview;
   review: {
     corrections: Correction[];
     regenerated_plan?: ExperimentPlan;
