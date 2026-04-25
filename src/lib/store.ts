@@ -63,7 +63,7 @@ export const useApp = create<StoreState>()(
       reset: () => set({ ...initial }),
     }),
     {
-      name: "ai-scientist-state",
+      name: "ai-scientist-state-v2",
       storage: createJSONStorage(() =>
         isBrowser ? sessionStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} },
       ),
