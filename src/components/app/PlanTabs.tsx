@@ -18,6 +18,11 @@ import { cn } from "@/lib/utils";
 import type { RetrievalResults } from "@/lib/types";
 import { SourceBadge } from "@/components/app/SourceBadge";
 import type { SourceTag } from "@/lib/types";
+import { GanttChart } from "@/components/app/GanttChart";
+import { Button } from "@/components/ui/button";
+import { Download, FileImage } from "lucide-react";
+import { exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { toast } from "sonner";
 
 function inferSupplierTag(supplier: string): SourceTag {
   const s = supplier.toLowerCase();
@@ -206,6 +211,37 @@ export function PlanTabs({
           <Empty label="Timeline not generated yet." />
         ) : (
           <div className="space-y-4">
+            <GanttChart timeline={plan.timeline} />
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await exportGanttPNG();
+                    toast.success("Gantt PNG downloaded");
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Export failed");
+                  }
+                }}
+              >
+                <FileImage className="mr-2 h-4 w-4" /> Download PNG
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await exportGanttPDF();
+                    toast.success("Gantt PDF downloaded");
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Export failed");
+                  }
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" /> Download PDF
+              </Button>
+            </div>
             <div className="rounded-xl border bg-card">
               <Table>
                 <TableHeader>

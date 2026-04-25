@@ -1,88 +1,524 @@
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import type { AppState } from "./types";
 
-export function exportPlanPdf(state: AppState) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 48;
-  const width = doc.internal.pageSize.getWidth() - margin * 2;
-  let y = margin;
+const TEAL: [number, number, number] = [1, 105, 111];
+const TEAL_LIGHT: [number, number, number] = [212, 233, 233];
+const TEXT: [number, number, number] = [40, 37, 29];
+const MUTED: [number, number, number] = [120, 121, 116];
+const GREEN: [number, number, number] = [212, 223, 204];
+const AMBER: [number, number, number] = [233, 224, 198];
+const RED: [number, number, number] = [224, 206, 215];
 
-  const ensure = (h: number) => {
-    if (y + h > doc.internal.pageSize.getHeight() - margin) {
-      doc.addPage();
-      y = margin;
-    }
-  };
+const PAGE_W = 210;
+const PAGE_H = 297;
+const MARGIN = 20;
+const CONTENT_W = PAGE_W - MARGIN * 2;
 
-  const h1 = (t: string) => {
-    ensure(28);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(t, margin, y);
-    y += 24;
-  };
-  const h2 = (t: string) => {
-    ensure(22);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(t, margin, y);
-    y += 18;
-  };
-  const p = (t: string) => {
+function setHeader(doc: jsPDF, text: string, y: number) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...TEAL);
+  doc.text(text, MARGIN, y);
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, y + 1.5, MARGIN + 40, y + 1.5);
+  return y + 8;
+}
+
+function body(doc: jsPDF) {
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT);
+}
+
+function paragraph(doc: jsPDF, text: string, y: number, maxWidth = CONTENT_W): number {
+  body(doc);
+  const lines = doc.splitTextToSize(text || "—", maxWidth) as string[];
+  doc.text(lines, MARGIN, y);
+  return y + lines.length * 4.6 + 2;
+}
+
+function ensure(doc: jsPDF, y: number, needed = 30): number {
+  if (y + needed > PAGE_H - MARGIN - 10) {
+    doc.addPage();
+    return MARGIN;
+  }
+  return y;
+}
+
+function drawCoverLogo(doc: jsPDF, x: number, y: number) {
+  doc.setDrawColor(...TEAL);
+  doc.setFillColor(...TEAL);
+  doc.setLineWidth(0.6);
+  // simple flask
+  doc.line(x + 4, y, x + 8, y);
+  doc.line(x + 5, y, x + 5, y + 5);
+  doc.line(x + 7, y, x + 7, y + 5);
+  doc.triangle(x + 5, y + 5, x + 7, y + 5, x + 6, y + 12, "S");
+  doc.circle(x + 6, y + 9, 0.6, "F");
+}
+
+function addPageNumbers(doc: jsPDF) {
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(t, width);
-    for (const line of lines) {
-      ensure(14);
-      doc.text(line, margin, y);
-      y += 13;
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(`Page ${i} of ${total}`, PAGE_W - MARGIN, PAGE_H - 10, { align: "right" });
+    doc.text("LabMind · Experiment Plan", MARGIN, PAGE_H - 10);
+  }
+}
+
+function noveltyColor(signal?: string): [number, number, number] {
+  if (signal === "not_found") return [180, 220, 195];
+  if (signal === "similar_work_exists") return [240, 220, 175];
+  if (signal === "exact_match_found") return [230, 195, 200];
+  return [220, 220, 220];
+}
+
+function confidenceColor(c: string): [number, number, number] {
+  if (c === "confirmed") return GREEN;
+  if (c === "estimated") return AMBER;
+  return RED;
+}
+
+export async function exportToPDF(state: AppState) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const today = new Date().toLocaleDateString();
+  const hyp = state.input_hypothesis || "";
+  const novelty = state.literature_qc?.novelty_signal ?? "—";
+
+  // ── PAGE 1 — Cover ──────────────────────────────────────
+  drawCoverLogo(doc, MARGIN, MARGIN);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.setTextColor(...TEAL);
+  doc.text("LabMind", MARGIN + 18, MARGIN + 8);
+  doc.setFontSize(11);
+  doc.setTextColor(...MUTED);
+  doc.text("AI Scientist · Experiment Plan", MARGIN + 18, MARGIN + 14);
+
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.8);
+  doc.line(MARGIN, 80, PAGE_W - MARGIN, 80);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.setTextColor(...TEXT);
+  doc.text("Experiment Plan", MARGIN, 100);
+
+  body(doc);
+  doc.setFontSize(11);
+  const subtitle = hyp.slice(0, 120) + (hyp.length > 120 ? "…" : "");
+  const subLines = doc.splitTextToSize(subtitle, CONTENT_W) as string[];
+  doc.text(subLines, MARGIN, 112);
+
+  autoTable(doc, {
+    startY: 140,
+    head: [["Field", "Value"]],
+    body: [
+      ["Experiment type", state.experiment_type ?? "—"],
+      ["Novelty signal", novelty],
+      ["Generated", today],
+      ["Sources", "protocols.io · PubMed · Semantic Scholar · Addgene · Tavily"],
+    ],
+    theme: "grid",
+    headStyles: { fillColor: TEAL, textColor: 255, fontStyle: "bold", fontSize: 10 },
+    bodyStyles: { fontSize: 10, textColor: TEXT },
+    margin: { left: MARGIN, right: MARGIN },
+  });
+
+  doc.setFontSize(9);
+  doc.setTextColor(...MUTED);
+  doc.text(
+    "Generated by LabMind · Hack-Nation Global AI Hackathon 2026",
+    PAGE_W / 2,
+    PAGE_H - 25,
+    { align: "center" },
+  );
+
+  // ── PAGE 2 — Hypothesis & Literature QC ────────────────
+  doc.addPage();
+  let y = MARGIN;
+  y = setHeader(doc, "Hypothesis", y);
+  y = paragraph(doc, hyp, y);
+  y += 4;
+
+  if (state.parsed_hypothesis) {
+    y = ensure(doc, y, 40);
+    y = setHeader(doc, "Parsed Fields", y);
+    const rows = Object.entries(state.parsed_hypothesis)
+      .filter(([, v]) => typeof v === "string" || typeof v === "number")
+      .map(([k, v]) => [k.replace(/_/g, " "), String(v)]);
+    autoTable(doc, {
+      startY: y,
+      head: [["Field", "Value"]],
+      body: rows,
+      theme: "striped",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  }
+
+  if (state.literature_qc) {
+    y = ensure(doc, y, 50);
+    y = setHeader(doc, "Literature Quality Control", y);
+    const c = noveltyColor(state.literature_qc.novelty_signal);
+    doc.setFillColor(...c);
+    doc.setDrawColor(...c);
+    doc.roundedRect(MARGIN, y - 2, 70, 8, 1.5, 1.5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...TEXT);
+    doc.text(state.literature_qc.novelty_signal.replace(/_/g, " ").toUpperCase(), MARGIN + 3, y + 3.5);
+    y += 12;
+    body(doc);
+    state.literature_qc.references.forEach((r, i) => {
+      y = ensure(doc, y, 14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${i + 1}. ${r.title}`, MARGIN, y, { maxWidth: CONTENT_W });
+      y += 4.5;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...MUTED);
+      doc.text(`${r.source} · ${r.url}`, MARGIN, y, { maxWidth: CONTENT_W });
+      doc.setTextColor(...TEXT);
+      y += 6;
+    });
+  }
+
+  // ── PAGE 3 — Protocol ─────────────────────────────────
+  if (state.experiment_plan.protocol) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Step-by-Step Protocol", y);
+    const proto = state.experiment_plan.protocol;
+    autoTable(doc, {
+      startY: y,
+      head: [["#", "Title", "Description", "Critical parameters"]],
+      body: proto.protocol_steps.map((s) => [
+        String(s.step),
+        s.title,
+        s.description,
+        s.critical_parameters ?? "—",
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 36 }, 3: { cellWidth: 40 } },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+    if (proto.assumptions.length) {
+      y = ensure(doc, y, 20);
+      y = setHeader(doc, "Assumptions", y);
+      proto.assumptions.forEach((a) => {
+        y = ensure(doc, y, 8);
+        y = paragraph(doc, "• " + a, y);
+      });
+    }
+    if (proto.risk_points.length) {
+      y = ensure(doc, y, 20);
+      y = setHeader(doc, "Risk points", y);
+      proto.risk_points.forEach((a) => {
+        y = ensure(doc, y, 8);
+        y = paragraph(doc, "• " + a, y);
+      });
+    }
+  }
+
+  // ── PAGE 4 — Materials ────────────────────────────────
+  if (state.experiment_plan.materials) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Materials & Supply Chain", y);
+    autoTable(doc, {
+      startY: y,
+      head: [["#", "Item", "Supplier", "Catalog #", "Purpose", "Qty", "Confidence"]],
+      body: state.experiment_plan.materials.materials.map((m, i) => [
+        String(i + 1),
+        m.item_name,
+        m.supplier,
+        m.catalog_number,
+        m.purpose,
+        m.quantity_estimate,
+        m.confidence,
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+      margin: { left: MARGIN, right: MARGIN },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 6) {
+          const text = String(d.cell.raw ?? "").toLowerCase();
+          d.cell.styles.fillColor = confidenceColor(text);
+          d.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    body(doc);
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(
+      "Catalog numbers sourced from Thermo Fisher, Sigma-Aldrich, Promega, Qiagen, IDT, ATCC, Addgene via LabMind retrieval.",
+      MARGIN,
+      y,
+      { maxWidth: CONTENT_W },
+    );
+  }
+
+  // ── PAGE 5 — Budget ───────────────────────────────────
+  if (state.experiment_plan.budget) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Budget Estimate", y);
+    const b = state.experiment_plan.budget;
+    autoTable(doc, {
+      startY: y,
+      head: [["Category", "Item", "Qty", "Unit cost", "Total"]],
+      body: [
+        ...b.budget_lines.map((l) => [l.category, l.item, l.quantity, l.unit_cost, l.total]),
+        ["Materials subtotal", "", "", "", b.subtotal_materials],
+        ["Operations subtotal", "", "", "", b.subtotal_operations],
+        ["TOTAL", "", "", "", b.total_estimated_cost],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT },
+      margin: { left: MARGIN, right: MARGIN },
+      didParseCell: (d) => {
+        if (d.section !== "body") return;
+        const lines = b.budget_lines.length;
+        if (d.row.index === lines || d.row.index === lines + 1) {
+          d.cell.styles.fillColor = TEAL_LIGHT;
+          d.cell.styles.fontStyle = "bold";
+        } else if (d.row.index === lines + 2) {
+          d.cell.styles.fillColor = TEAL;
+          d.cell.styles.textColor = [255, 255, 255];
+          d.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    y = paragraph(doc, "Cost driver: " + b.cost_driver_note, y);
+    body(doc);
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(
+      "Cost estimates based on supplier class and historical ranges. Confirm current prices before ordering.",
+      MARGIN,
+      y,
+      { maxWidth: CONTENT_W },
+    );
+  }
+
+  // ── PAGE 6 — Timeline ─────────────────────────────────
+  if (state.experiment_plan.timeline) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Execution Timeline", y);
+    const t = state.experiment_plan.timeline;
+    autoTable(doc, {
+      startY: y,
+      head: [["Phase", "Duration", "Dependencies", "Notes"]],
+      body: t.phases.map((p) => [p.phase, p.duration, p.dependencies, p.notes]),
+      theme: "grid",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    body(doc);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total duration: ${t.total_duration}`, MARGIN, y);
+    y += 6;
+    if (t.bottlenecks?.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...MUTED);
+      doc.text("Bottlenecks: " + t.bottlenecks.join("; "), MARGIN, y, { maxWidth: CONTENT_W });
+    }
+
+    // Try to embed live gantt snapshot
+    try {
+      const el = document.getElementById("gantt-container");
+      if (el) {
+        const html2canvas = (await import("html2canvas")).default;
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+        const img = canvas.toDataURL("image/png");
+        doc.addPage();
+        let yy = MARGIN;
+        yy = setHeader(doc, "Timeline (Gantt View)", yy);
+        const w = CONTENT_W;
+        const h = (canvas.height * w) / canvas.width;
+        doc.addImage(img, "PNG", MARGIN, yy, w, Math.min(h, PAGE_H - MARGIN * 2 - 20));
+      }
+    } catch (e) {
+      // skip silently
+    }
+  }
+
+  // ── PAGE 7 — Validation ───────────────────────────────
+  if (state.experiment_plan.validation) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Validation Approach", y);
+    const v = state.experiment_plan.validation;
+    autoTable(doc, {
+      startY: y,
+      body: [
+        ["Primary endpoint", v.primary_endpoint],
+        ["Secondary endpoints", v.secondary_endpoints.join("; ") || "—"],
+        ["Controls", v.controls.join("; ") || "—"],
+        ["Readouts", v.readouts.join("; ") || "—"],
+        ["Success criteria", v.success_criteria],
+        ["Failure criteria", v.failure_criteria],
+      ],
+      theme: "grid",
+      bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 45, fillColor: [245, 244, 240] } },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    if (typeof v.strength_score === "number") {
+      body(doc);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Validation strength: ${v.strength_score}/5`, MARGIN, y);
+      y += 5;
+      if (v.strength_rationale) {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...MUTED);
+        const lines = doc.splitTextToSize(v.strength_rationale, CONTENT_W) as string[];
+        doc.text(lines, MARGIN, y);
+      }
+    }
+  }
+
+  // ── PAGE 8 — Devil's Advocate ─────────────────────────
+  if (state.devils_advocate) {
+    doc.addPage();
+    y = MARGIN;
+    y = setHeader(doc, "Critical Review (Devil's Advocate)", y);
+    const da = state.devils_advocate;
+    body(doc);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Overall confidence: ${da.overall_confidence}/5`, MARGIN, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    y = paragraph(doc, da.verdict, y);
+    autoTable(doc, {
+      startY: y,
+      head: [["Section", "Issue", "Critique", "Suggestion"]],
+      body: da.critiques.map((c) => [c.section, c.issue_type, c.critique, c.suggestion]),
+      theme: "grid",
+      headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+      columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 25 } },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+  }
+
+  // ── PAGE 9 — Sources ──────────────────────────────────
+  doc.addPage();
+  y = MARGIN;
+  y = setHeader(doc, "References & Sources", y);
+  const groups: Array<[string, AppState["retrieval_results"]["protocolSources"]]> = [
+    ["Protocol sources", state.retrieval_results.protocolSources],
+    ["Literature", state.retrieval_results.literatureSources],
+    ["Supplier references", state.retrieval_results.supplierSources],
+    ["Plasmid / cell line", state.retrieval_results.plasmidSources],
+    ["Validation references", state.retrieval_results.validationSources],
+  ];
+  for (const [label, items] of groups) {
+    y = ensure(doc, y, 15);
+    body(doc);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...TEAL);
+    doc.text(label, MARGIN, y);
+    y += 5;
+    doc.setTextColor(...TEXT);
+    doc.setFont("helvetica", "normal");
+    if (!items.length) {
+      doc.setTextColor(...MUTED);
+      doc.text("(none)", MARGIN, y);
+      y += 5;
+      continue;
+    }
+    for (const r of items) {
+      y = ensure(doc, y, 10);
+      const t = doc.splitTextToSize(r.title || r.url, CONTENT_W) as string[];
+      doc.text(t, MARGIN, y);
+      y += t.length * 4.4;
+      doc.setTextColor(...MUTED);
+      doc.setFontSize(8);
+      const u = doc.splitTextToSize(r.url, CONTENT_W) as string[];
+      doc.text(u, MARGIN, y);
+      doc.setFontSize(10);
+      doc.setTextColor(...TEXT);
+      y += u.length * 3.6 + 2;
     }
     y += 4;
-  };
-
-  h1("AI Scientist — Experiment Plan");
-  p(state.input_hypothesis);
-  if (state.parsed_hypothesis) {
-    h2("Parsed hypothesis");
-    Object.entries(state.parsed_hypothesis).forEach(([k, v]) =>
-      p(`${k}: ${v}`),
-    );
   }
 
-  const plan = state.experiment_plan;
-  if (plan.protocol) {
-    h2("Protocol");
-    plan.protocol.protocol_steps.forEach((s) =>
-      p(`${s.step}. ${s.title} — ${s.description}`),
-    );
-  }
-  if (plan.materials) {
-    h2("Materials");
-    plan.materials.materials.forEach((m) =>
-      p(`${m.item_name} | ${m.supplier} | ${m.catalog_number} | qty ${m.quantity_estimate} | ${m.confidence}`),
-    );
-  }
-  if (plan.budget) {
-    h2("Budget");
-    plan.budget.budget_lines.forEach((b) =>
-      p(`[${b.category}] ${b.item} — ${b.quantity} × ${b.unit_cost} = ${b.total}`),
-    );
-    p(`Total: ${plan.budget.total_estimated_cost}`);
-  }
-  if (plan.timeline) {
-    h2("Timeline");
-    plan.timeline.phases.forEach((ph) =>
-      p(`${ph.phase}: ${ph.duration} (${ph.dependencies}) — ${ph.notes}`),
-    );
-    p(`Total duration: ${plan.timeline.total_duration}`);
-  }
-  if (plan.validation) {
-    h2("Validation");
-    p(`Primary endpoint: ${plan.validation.primary_endpoint}`);
-    p(`Controls: ${plan.validation.controls.join(", ")}`);
-    p(`Success: ${plan.validation.success_criteria}`);
-    p(`Failure: ${plan.validation.failure_criteria}`);
-  }
+  // ── Last page footer ──────────────────────────────────
+  doc.addPage();
+  y = MARGIN + 10;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...TEAL);
+  doc.text("Disclaimer & Credits", MARGIN, y);
+  y += 12;
+  body(doc);
+  y = paragraph(doc, `This plan was generated by LabMind on ${today}.`, y);
+  y = paragraph(
+    doc,
+    "All protocol steps should be validated by a qualified scientist before execution.",
+    y,
+  );
+  y = paragraph(
+    doc,
+    "Contact: LabMind · Hack-Nation 2026 · Powered by Tavily, Semantic Scholar, PubMed, protocols.io",
+    y,
+  );
 
-  doc.save("experiment-plan.pdf");
+  addPageNumbers(doc);
+
+  const date = new Date().toISOString().slice(0, 10);
+  doc.save(`labmind_experiment_plan_${date}.pdf`);
+}
+
+export async function exportGanttPDF() {
+  const html2canvas = (await import("html2canvas")).default;
+  const el = document.getElementById("gantt-container");
+  if (!el) throw new Error("Gantt chart not found");
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+  const img = canvas.toDataURL("image/png");
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...TEAL);
+  doc.text("Experiment Timeline — LabMind", 20, 18);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...MUTED);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 26);
+  const w = 257;
+  const h = (canvas.height * w) / canvas.width;
+  doc.addImage(img, "PNG", 20, 32, w, Math.min(h, 160));
+  doc.save(`labmind_gantt_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+export async function exportGanttPNG() {
+  const html2canvas = (await import("html2canvas")).default;
+  const el = document.getElementById("gantt-container");
+  if (!el) throw new Error("Gantt chart not found");
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+  const link = document.createElement("a");
+  link.download = `labmind_gantt_${new Date().toISOString().slice(0, 10)}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
 }
