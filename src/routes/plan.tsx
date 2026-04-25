@@ -7,8 +7,16 @@ import { useApp } from "@/lib/store";
 import { PlanTabs } from "@/components/app/PlanTabs";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
 import { DevilsAdvocatePanel, ConfidenceStars } from "@/components/app/DevilsAdvocate";
-import { Download, MessageSquare } from "lucide-react";
+import { Download, MessageSquare, FileText, FileSpreadsheet, ChevronDown, Loader2, Image as ImageIcon, FileType } from "lucide-react";
 import { downloadPlanText } from "@/lib/exportPlan";
+import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { exportToXLSX } from "@/lib/exportXlsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useServerFn } from "@tanstack/react-start";
 import { runDevilsAdvocate } from "@/server/ai.functions";
 import { toast } from "sonner";
@@ -23,6 +31,7 @@ function PlanScreen() {
   const navigate = useNavigate();
   const p = s.parsed_hypothesis;
   const [daLoading, setDaLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const fDA = useServerFn(runDevilsAdvocate);
 
   const runDA = async () => {
@@ -42,6 +51,23 @@ function PlanScreen() {
       toast.error(e instanceof Error ? e.message : "Devil's Advocate failed");
     } finally {
       setDaLoading(false);
+    }
+  };
+
+  const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+    setExporting(true);
+    try {
+      if (kind === "pdf") await exportToPDF(s);
+      else if (kind === "xlsx") exportToXLSX(s);
+      else if (kind === "gantt-png") await exportGanttPNG();
+      else if (kind === "gantt-pdf") await exportGanttPDF();
+      else downloadPlanText(s);
+      toast.success("Downloaded successfully");
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Export failed — please try again");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -84,9 +110,51 @@ function PlanScreen() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => downloadPlanText(s)}>
-              <Download className="mr-2 h-4 w-4" /> Export plan (.txt)
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={exporting}>
+                  {exporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Export
+                  <ChevronDown className="ml-1 h-4 w-4 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <ExportRow
+                  icon={<FileText className="h-4 w-4 text-primary" />}
+                  label="Full Report PDF"
+                  sub="Complete plan, all sections"
+                  onSelect={() => runExport("pdf")}
+                />
+                <ExportRow
+                  icon={<FileSpreadsheet className="h-4 w-4 text-primary" />}
+                  label="Supplier & Budget XLSX"
+                  sub="Materials, costs, links, checklist"
+                  onSelect={() => runExport("xlsx")}
+                />
+                <ExportRow
+                  icon={<ImageIcon className="h-4 w-4 text-primary" />}
+                  label="Gantt Chart PNG"
+                  sub="Timeline as image"
+                  onSelect={() => runExport("gantt-png")}
+                />
+                <ExportRow
+                  icon={<FileType className="h-4 w-4 text-primary" />}
+                  label="Gantt Chart PDF"
+                  sub="Timeline, landscape A4"
+                  onSelect={() => runExport("gantt-pdf")}
+                />
+                <ExportRow
+                  icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+                  label="Plan Summary TXT"
+                  sub="Quick plain-text overview"
+                  onSelect={() => runExport("txt")}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={() => navigate({ to: "/review" })}>
               <MessageSquare className="mr-2 h-4 w-4" /> Scientist Review
             </Button>
@@ -110,5 +178,33 @@ function PlanScreen() {
       </main>
       <AppFooter />
     </div>
+  );
+}
+
+function ExportRow({
+  icon,
+  label,
+  sub,
+  onSelect,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  onSelect: () => void;
+}) {
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => {
+        e.preventDefault();
+        onSelect();
+      }}
+      className="flex items-start gap-3 px-3 py-2.5"
+    >
+      <span className="mt-0.5">{icon}</span>
+      <span className="flex flex-col">
+        <span className="text-sm font-medium leading-tight">{label}</span>
+        <span className="text-xs text-muted-foreground">{sub}</span>
+      </span>
+    </DropdownMenuItem>
   );
 }
