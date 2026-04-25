@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { AppState } from "./types";
+import { captureElement } from "./exportCanvas";
 
 const TEAL: [number, number, number] = [1, 105, 111];
 const TEAL_LIGHT: [number, number, number] = [212, 233, 233];
@@ -347,8 +348,7 @@ export async function exportToPDF(state: AppState) {
     try {
       const el = document.getElementById("gantt-container");
       if (el) {
-        const html2canvas = (await import("html2canvas")).default;
-        const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+        const canvas = await captureElement(el as HTMLElement);
         const img = canvas.toDataURL("image/png");
         doc.addPage();
         let yy = MARGIN;
@@ -492,10 +492,9 @@ export async function exportToPDF(state: AppState) {
 }
 
 export async function exportGanttPDF() {
-  const html2canvas = (await import("html2canvas")).default;
   const el = document.getElementById("gantt-container");
   if (!el) throw new Error("Gantt chart not found");
-  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+  const canvas = await captureElement(el as HTMLElement);
   const img = canvas.toDataURL("image/png");
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   doc.setFont("helvetica", "bold");
@@ -513,10 +512,9 @@ export async function exportGanttPDF() {
 }
 
 export async function exportGanttPNG() {
-  const html2canvas = (await import("html2canvas")).default;
   const el = document.getElementById("gantt-container");
   if (!el) throw new Error("Gantt chart not found");
-  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+  const canvas = await captureElement(el as HTMLElement);
   const link = document.createElement("a");
   link.download = `labmind_gantt_${new Date().toISOString().slice(0, 10)}.png`;
   link.href = canvas.toDataURL("image/png");
