@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
+import { NavArrowsHeader, type NavScreen } from "./NavArrows";
 
 export type Stage = "input" | "qc" | "plan" | "review";
 
@@ -66,7 +67,7 @@ function FlaskMark() {
   );
 }
 
-export function AppHeader({ stage }: { stage?: Stage }) {
+export function AppHeader({ stage, current }: { stage?: Stage; current?: NavScreen }) {
   const reset = useApp((s) => s.reset);
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
@@ -83,6 +84,7 @@ export function AppHeader({ stage }: { stage?: Stage }) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          {current && <NavArrowsHeader current={current} />}
           <ThemeToggle />
           <Button
             asChild

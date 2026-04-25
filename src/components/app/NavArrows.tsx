@@ -11,7 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useApp } from "@/lib/store";
 import { toast } from "sonner";
 
-type Screen = "input" | "parsed" | "qc" | "plan" | "review" | "compare";
+export type NavScreen = "input" | "parsed" | "qc" | "plan" | "review" | "compare";
+type Screen = NavScreen;
 
 const SCREEN_LABEL: Record<Screen, string> = {
   input: "Hypothesis",
@@ -33,7 +34,7 @@ const SCREEN_PATH: Record<Screen, "/input" | "/parsed" | "/qc" | "/plan" | "/rev
 
 const ORDER: Screen[] = ["input", "parsed", "qc", "plan", "review", "compare"];
 
-export function NavArrows({ current }: { current: Screen }) {
+function useArrowState(current: Screen) {
   const navigate = useNavigate();
   const s = useApp();
 
@@ -41,7 +42,6 @@ export function NavArrows({ current }: { current: Screen }) {
   const prev = idx > 0 ? ORDER[idx - 1] : null;
   const next = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
 
-  // Forward gate — only allow if the next screen's data exists.
   const canForward = (() => {
     if (!next) return false;
     switch (next) {
@@ -71,10 +71,18 @@ export function NavArrows({ current }: { current: Screen }) {
     if (!next || !canForward) return;
     navigate({ to: SCREEN_PATH[next] });
   };
+  return { prev, next, canForward, goBack, goForward };
+}
 
+/**
+ * Compact header arrows (desktop). Sits inline in the header between
+ * the breadcrumb and the theme toggle. Icon-only, 32x32px.
+ */
+export function NavArrowsHeader({ current }: { current: Screen }) {
+  const { prev, next, canForward, goBack, goForward } = useArrowState(current);
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="fixed right-5 top-4 z-50 flex items-center gap-2">
+      <div className="hidden items-center gap-1 md:flex">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -83,7 +91,7 @@ export function NavArrows({ current }: { current: Screen }) {
               onClick={goBack}
               disabled={!prev}
               aria-label="Back"
-              className="h-9 w-9 rounded-full border-primary/40 text-primary shadow-sm backdrop-blur disabled:opacity-30"
+              className="h-8 w-8 rounded-full border-primary/40 text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -100,7 +108,7 @@ export function NavArrows({ current }: { current: Screen }) {
               onClick={goForward}
               disabled={!next || !canForward}
               aria-label="Forward"
-              className="h-9 w-9 rounded-full border-primary/40 text-primary shadow-sm backdrop-blur disabled:opacity-30"
+              className="h-8 w-8 rounded-full border-primary/40 text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -112,4 +120,43 @@ export function NavArrows({ current }: { current: Screen }) {
       </div>
     </TooltipProvider>
   );
+}
+
+/**
+ * Full-width mobile arrow bar. Renders below the header on small screens.
+ */
+export function NavArrowsMobile({ current }: { current: Screen }) {
+  const { prev, next, canForward, goBack, goForward } = useArrowState(current);
+  return (
+    <div className="flex items-center justify-between gap-2 border-b bg-background/85 px-4 py-2 backdrop-blur md:hidden">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goBack}
+        disabled={!prev}
+        className="flex-1 border-primary/40 text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <ArrowLeft className="mr-1.5 h-4 w-4" />
+        {prev ? `Back: ${SCREEN_LABEL[prev]}` : "Back"}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goForward}
+        disabled={!next || !canForward}
+        className="flex-1 border-primary/40 text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {next && canForward ? `Forward: ${SCREEN_LABEL[next]}` : "Forward"}
+        <ArrowRight className="ml-1.5 h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Backwards-compatible wrapper: render mobile bar on small screens.
+ * The desktop arrows live inside AppHeader directly via NavArrowsHeader.
+ */
+export function NavArrows({ current }: { current: Screen }) {
+  return <NavArrowsMobile current={current} />;
 }
