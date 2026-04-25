@@ -80,6 +80,7 @@ function QCScreen() {
   const fTavProto = useServerFn(fetchTavilyProtocols);
   const fTavSup = useServerFn(fetchTavilySuppliers);
   const fTavVal = useServerFn(fetchTavilyValidation);
+  const fNov = useServerFn(classifyNovelty);
 
   const ready = !!s.literature_qc;
 
@@ -137,10 +138,12 @@ function QCScreen() {
       s.set("retrieval_results", retrieval);
 
       try {
-        const qc = await classifyNoveltyClient({
-          parsed,
-          tavily: retrieval.protocolSources,
-          scholar: retrieval.literatureSources,
+        const qc = await fNov({
+          data: {
+            parsed,
+            tavily: retrieval.protocolSources,
+            scholar: retrieval.literatureSources,
+          },
         });
         s.set("literature_qc", qc);
       } catch (e) {
@@ -150,14 +153,6 @@ function QCScreen() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.parsed_hypothesis, ready]);
-
-  // We use the bound server fn for novelty inside the orchestrator
-  const fNov = useServerFn(classifyNovelty);
-  const classifyNoveltyClient = (args: {
-    parsed: NonNullable<typeof s.parsed_hypothesis>;
-    tavily: SearchResult[];
-    scholar: SearchResult[];
-  }) => fNov({ data: args });
 
   if (!s.parsed_hypothesis) {
     return (
