@@ -180,9 +180,9 @@ function QCScreen() {
       <div className="min-h-screen">
         <AppHeader stage="qc" />
         <main className="mx-auto max-w-2xl px-6 py-12">
-          <h1 className="text-2xl font-semibold tracking-tight">Searching evidence</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Searching scientific sources…</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Querying direct APIs and domain-constrained scrapers in parallel.
+            Querying direct APIs and domain-constrained scrapers in parallel. Estimated time: ~15 seconds.
           </p>
           <ul className="mt-6 space-y-2 rounded-xl border bg-card p-4">
             {SOURCE_KEYS.map((k) => (
