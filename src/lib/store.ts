@@ -61,7 +61,17 @@ export const useApp = create<StoreState>()(
             corrections: [...s.review.corrections.filter((x) => x.section !== c.section), c],
           },
         })),
-      reset: () => set({ ...initial }),
+      reset: () =>
+        set({
+          ...initial,
+          // Explicitly clear optional fields that aren't on `initial`
+          parsed_hypothesis: undefined,
+          literature_qc: undefined,
+          devils_advocate: undefined,
+          budget_cap: undefined,
+          preferred_suppliers: undefined,
+          timeline_target: undefined,
+        } as Partial<StoreState>),
     }),
     {
       name: "ai-scientist-state-v2",
