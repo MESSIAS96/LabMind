@@ -5,7 +5,6 @@ import { AppHeader } from "@/components/app/Stepper";
 import { Button } from "@/components/ui/button";
 import { AppFooter } from "@/components/app/AppFooter";
 import { useApp } from "@/lib/store";
-import labmindLogo from "@/assets/labmind-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,35 +25,90 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+const TEAL = "#01696f";
+
+/** 72×72 line-art molecule logo mark. */
+function LabMindMark() {
+  return (
+    <svg
+      viewBox="0 0 72 72"
+      width={72}
+      height={72}
+      fill="none"
+      stroke={TEAL}
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* central node */}
+      <circle cx="36" cy="36" r="6" />
+      {/* outer nodes — molecular geometry */}
+      <circle cx="14" cy="22" r="4" />
+      <circle cx="58" cy="22" r="4" />
+      <circle cx="14" cy="50" r="4" />
+      <circle cx="58" cy="50" r="4" />
+      {/* bonds */}
+      <line x1="18" y1="24" x2="31" y2="33" />
+      <line x1="54" y1="24" x2="41" y2="33" />
+      <line x1="18" y1="48" x2="31" y2="39" />
+      <line x1="54" y1="48" x2="41" y2="39" />
+    </svg>
+  );
+}
+
 const EXAMPLES = [
   {
-    emoji: "🧫",
-    border: "border-l-[oklch(0.6_0.13_150)]",
-    glow: "hover:shadow-[0_0_0_3px_oklch(0.55_0.07_180/0.18)]",
+    category: "MICROBIOLOGY",
     question: "Does a probiotic strengthen the gut lining in mice?",
     hypothesis:
       "Supplementing C57BL/6 mice with Lactobacillus rhamnosus GG for 4 weeks will reduce intestinal permeability by at least 30% compared to untreated controls, measured by FITC-dextran assay.",
     experiment_type: "Cell Biology",
   },
   {
-    emoji: "🩸",
-    border: "border-l-[oklch(0.6_0.13_220)]",
-    glow: "hover:shadow-[0_0_0_3px_oklch(0.55_0.07_180/0.18)]",
-    question: "Can we build a fast blood test for inflammation without lab equipment?",
+    category: "ONCOLOGY",
+    question: "Can a common drug slow cancer cell growth in the lab?",
     hypothesis:
-      "A paper-based electrochemical biosensor functionalized with anti-CRP antibodies will detect C-reactive protein in whole blood at concentrations below 0.5 mg/L within 10 minutes, matching standard ELISA sensitivity.",
-    experiment_type: "Diagnostics",
-  },
-  {
-    emoji: "❄️",
-    border: "border-l-[oklch(0.7_0.16_55)]",
-    glow: "hover:shadow-[0_0_0_3px_oklch(0.55_0.07_180/0.18)]",
-    question: "Can we keep more cells alive during freezing by swapping one ingredient?",
-    hypothesis:
-      "Replacing sucrose with trehalose as a cryoprotectant will increase post-thaw viability of HeLa cells by at least 15 percentage points compared to the standard DMSO protocol.",
+      "Treatment of MCF-7 breast cancer cells with 10 µM metformin for 48 hours will reduce cell proliferation by at least 40% compared to untreated controls, measured by MTT assay, due to inhibition of the mTOR signaling pathway.",
     experiment_type: "Cell Biology",
   },
+  {
+    category: "NEUROSCIENCE",
+    question: "Does sleep deprivation increase a key Alzheimer's marker in the brain?",
+    hypothesis:
+      "Subjecting C57BL/6 mice to 48 hours of sleep deprivation will increase hippocampal amyloid-beta (Aβ1-42) levels by at least 25% compared to rested controls, measured by ELISA, due to impaired glymphatic clearance during sleep loss.",
+    experiment_type: "Neuroscience / In Vivo",
+  },
 ] as const;
+
+/* Inline scientific icons (24×24, stroke teal) */
+function IconMagnifier() {
+  return (
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke={TEAL} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  );
+}
+function IconClipboard() {
+  return (
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke={TEAL} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <line x1="9" y1="12" x2="15" y2="12" />
+      <line x1="9" y1="16" x2="13" y2="16" />
+    </svg>
+  );
+}
+function IconDownload() {
+  return (
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke={TEAL} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7,10 12,15 17,10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
 
 function Landing() {
   const navigate = useNavigate();
@@ -71,27 +125,40 @@ function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: "#f9f8f5" }}>
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-6 pt-16 pb-20">
+      <main className="mx-auto max-w-5xl px-6 pt-14 pb-20">
         {/* HERO */}
         <section className="flex flex-col items-center text-center">
-          <img
-            src={labmindLogo}
-            alt="LabMind"
-            width={48}
-            height={48}
-            className="h-12 w-12"
-          />
-          <h1 className="mt-5 text-balance text-5xl font-semibold tracking-tight text-[#01696f] sm:text-6xl">
+          <LabMindMark />
+          <h1
+            className="mt-6 font-semibold tracking-tight"
+            style={{ color: TEAL, fontSize: "2.8rem", lineHeight: 1.1 }}
+          >
             LabMind
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-lg font-medium text-foreground sm:text-xl">
-            Turn any scientific idea into a lab-ready experiment plan — in minutes.
+
+          {/* Tagline block with 3px teal left border */}
+          <div
+            className="mt-6 max-w-2xl border-l-[3px] pl-4 text-left sm:text-center sm:border-l-0 sm:pl-0"
+            style={{ borderColor: TEAL }}
+          >
+            <p className="text-balance text-lg font-medium text-foreground sm:text-xl">
+              Turn any scientific idea into a lab-ready experiment plan — in minutes.
+            </p>
+            <p className="mt-3 text-balance text-sm text-muted-foreground">
+              Literature check. Grounded protocol. Real suppliers. Budget. Timeline. Standards compliance.
+            </p>
+          </div>
+
+          {/* Thin horizontal rule */}
+          <div className="mt-8 h-px w-full max-w-md" style={{ backgroundColor: "#d4d1ca" }} />
+
+          {/* Social proof */}
+          <p className="mt-4 text-xs text-muted-foreground">
+            Built on Semantic Scholar · PubMed · protocols.io · Thermo Fisher · Sigma-Aldrich
           </p>
-          <p className="mt-3 max-w-2xl text-balance text-sm text-muted-foreground">
-            Literature check. Grounded protocol. Real suppliers. Budget. Timeline. Standards compliance.
-          </p>
+
           <div className="mt-9 flex flex-col items-center gap-3">
             <Button asChild size="lg" className="h-12 px-7 text-base">
               <Link to="/input">
@@ -116,7 +183,7 @@ function Landing() {
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {/* Card 1 */}
             <div className="rounded-xl border bg-card p-5">
-              <div className="text-2xl">🔬</div>
+              <IconMagnifier />
               <div className="mt-3 font-medium">Novelty Check</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Instant signal — Not found / Similar work exists / Exact match
@@ -130,7 +197,7 @@ function Landing() {
             </div>
             {/* Card 2 */}
             <div className="rounded-xl border bg-card p-5">
-              <div className="text-2xl">📋</div>
+              <IconClipboard />
               <div className="mt-3 font-medium">Full Experiment Plan</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Protocol · Materials · Budget · Timeline · Validation
@@ -146,21 +213,21 @@ function Landing() {
             </div>
             {/* Card 3 */}
             <div className="rounded-xl border bg-card p-5">
-              <div className="text-2xl">📦</div>
+              <IconDownload />
               <div className="mt-3 font-medium">Export-Ready</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 PDF report · XLSX supplier list · Gantt chart
               </p>
               <div className="mt-3 flex gap-2 text-[11px]">
-                <span className="rounded border bg-background/60 px-2 py-1">📄 PDF</span>
-                <span className="rounded border bg-background/60 px-2 py-1">📊 XLSX</span>
-                <span className="rounded border bg-background/60 px-2 py-1">📅 PNG</span>
+                <span className="rounded border bg-background/60 px-2 py-1">PDF</span>
+                <span className="rounded border bg-background/60 px-2 py-1">XLSX</span>
+                <span className="rounded border bg-background/60 px-2 py-1">PNG</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* EXAMPLES */}
+        {/* EXAMPLES — scientific cards, no emoji */}
         <section id="examples" className="mt-20 scroll-mt-20">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             Start with an example
@@ -171,11 +238,22 @@ function Landing() {
                 key={e.question}
                 type="button"
                 onClick={() => useExample(e)}
-                className={`group flex items-center justify-between gap-4 rounded-2xl border border-l-4 bg-card px-5 py-4 text-left transition-all hover:border-primary/50 ${e.border} ${e.glow}`}
+                className="group flex items-center justify-between gap-4 rounded-lg border bg-card px-5 py-4 text-left transition-shadow hover:shadow-md"
+                style={{ borderLeftWidth: 3, borderLeftColor: TEAL }}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-2xl">{e.emoji}</span>
-                  <span className="truncate text-sm font-medium sm:text-base">{e.question}</span>
+                <div className="min-w-0">
+                  <div
+                    className="text-[10px] font-semibold uppercase text-muted-foreground"
+                    style={{ letterSpacing: "0.08em" }}
+                  >
+                    {e.category}
+                  </div>
+                  <div
+                    className="mt-1 text-foreground"
+                    style={{ fontSize: "15px", fontWeight: 400 }}
+                  >
+                    {e.question}
+                  </div>
                 </div>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
               </button>
