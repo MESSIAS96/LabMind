@@ -50,7 +50,7 @@ function Landing() {
             {
               icon: Microscope,
               title: "Literature QC",
-              body: "Tavily + Semantic Scholar check whether your idea is novel.",
+              body: "PubMed + Semantic Scholar check whether your idea is novel.",
             },
             {
               icon: FlaskConical,
