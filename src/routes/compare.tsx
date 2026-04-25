@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { AppFooter } from "@/components/app/AppFooter";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
@@ -105,6 +106,7 @@ function ImprovedPlanScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="review" />
+      <NavArrows current="compare" />
       <main className="mx-auto max-w-6xl px-6 py-8">
         {bannerOpen && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm text-foreground">

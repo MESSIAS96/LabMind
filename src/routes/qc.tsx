@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Spinner } from "@/components/app/Spinner";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
 import { Button } from "@/components/ui/button";
