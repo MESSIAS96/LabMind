@@ -52,9 +52,9 @@ const SOURCE_LABELS: Record<SourceKey, string> = {
   pubMed: "PubMed",
   scholar: "Semantic Scholar",
   addgene: "Addgene",
-  tavilyProtocols: "Protocol repositories (Tavily)",
-  tavilySuppliers: "Supplier catalogs (Tavily)",
-  tavilyValidation: "Validation references (Tavily)",
+  tavilyProtocols: "Protocol repositories",
+  tavilySuppliers: "Supplier catalogs",
+  tavilyValidation: "Validation references",
 };
 
 function QCScreen() {

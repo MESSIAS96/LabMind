@@ -5,7 +5,14 @@ export function AppFooter() {
         <div>Built at Hack-Nation Global AI Hackathon 2026</div>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           <span>Powered by</span>
-          {["Tavily", "Semantic Scholar", "PubMed", "protocols.io", "Addgene"].map((s) => (
+          {[
+            "Semantic Scholar",
+            "PubMed",
+            "protocols.io",
+            "Thermo Fisher",
+            "Sigma-Aldrich",
+            "Addgene",
+          ].map((s) => (
             <span
               key={s}
               className="rounded-full border bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
@@ -13,6 +20,9 @@ export function AppFooter() {
               {s}
             </span>
           ))}
+        </div>
+        <div className="mt-2 text-[10px] opacity-60">
+          Retrieval infrastructure powered by Tavily.
         </div>
       </div>
     </footer>

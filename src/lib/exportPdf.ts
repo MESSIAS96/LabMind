@@ -122,7 +122,7 @@ export async function exportToPDF(state: AppState) {
       ["Experiment type", state.experiment_type ?? "—"],
       ["Novelty signal", novelty],
       ["Generated", today],
-      ["Sources", "protocols.io · PubMed · Semantic Scholar · Addgene · Tavily"],
+      ["Sources", "protocols.io · PubMed · Semantic Scholar · Addgene"],
     ],
     theme: "grid",
     headStyles: { fillColor: TEAL, textColor: 255, fontStyle: "bold", fontSize: 10 },
@@ -481,7 +481,7 @@ export async function exportToPDF(state: AppState) {
   );
   y = paragraph(
     doc,
-    "Contact: LabMind · Hack-Nation 2026 · Powered by Tavily, Semantic Scholar, PubMed, protocols.io",
+    "Contact: LabMind · Hack-Nation 2026 · Powered by Semantic Scholar, PubMed, protocols.io, Addgene",
     y,
   );
 
