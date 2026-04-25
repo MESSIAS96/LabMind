@@ -297,7 +297,6 @@ function ImprovedPlanView({
             : "rounded-xl border bg-card p-4"
         }
       >
-        {/* @ts-expect-error narrow types satisfied at runtime */}
         <PlanTabs plan={regen} retrieval={retrieval} />
       </div>
     </div>
