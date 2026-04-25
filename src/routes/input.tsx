@@ -61,6 +61,10 @@ function InputScreen() {
         validationSources: [],
       });
       s.set("literature_qc", undefined);
+      // Pass 8 — Part C: clear Devil's Advocate findings tied to the prior plan.
+      s.set("devils_advocate", undefined);
+      s.set("experiment_plan", {});
+      s.set("review", { corrections: [] });
       navigate({ to: "/parsed" });
     } catch (e) {
       console.error(e);
