@@ -48,6 +48,30 @@ function ensure(doc: jsPDF, y: number, needed = 30): number {
   return y;
 }
 
+/**
+ * Pass 9 — Part E
+ * Link rendering helpers. URLs always live on their own line, indented
+ * with "    → ", in 8pt teal, with the full URL preserved as the
+ * clickable target. 4mm vertical breathing room before/after.
+ */
+function truncateUrl(url: string): string {
+  return url.length > 60 ? url.slice(0, 57) + "..." : url;
+}
+
+function drawUrlLine(doc: jsPDF, url: string, y: number): number {
+  if (!url) return y;
+  y = ensure(doc, y, 12);
+  y += 2; // 2mm space before
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEAL);
+  doc.textWithLink("    → " + truncateUrl(url), MARGIN, y, { url });
+  // restore body defaults
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT);
+  return y + 4 + 2; // line height + 2mm space after
+}
+
 function drawCoverLogo(doc: jsPDF, x: number, y: number) {
   doc.setDrawColor(...TEAL);
   doc.setFillColor(...TEAL);
@@ -179,15 +203,17 @@ export async function exportToPDF(state: AppState) {
     y += 12;
     body(doc);
     state.literature_qc.references.forEach((r, i) => {
-      y = ensure(doc, y, 14);
+      y = ensure(doc, y, 18);
       doc.setFont("helvetica", "bold");
       doc.text(`${i + 1}. ${r.title}`, MARGIN, y, { maxWidth: CONTENT_W });
       y += 4.5;
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...MUTED);
-      doc.text(`${r.source} · ${r.url}`, MARGIN, y, { maxWidth: CONTENT_W });
+      doc.text(`${r.source}`, MARGIN, y);
       doc.setTextColor(...TEXT);
-      y += 6;
+      y += 5;
+      if (r.url) y = drawUrlLine(doc, r.url, y);
+      y += 2;
     });
   }
 
@@ -449,17 +475,22 @@ export async function exportToPDF(state: AppState) {
       continue;
     }
     for (const r of items) {
-      y = ensure(doc, y, 10);
-      const t = doc.splitTextToSize(r.title || r.url, CONTENT_W) as string[];
-      doc.text(t, MARGIN, y);
-      y += t.length * 4.4;
-      doc.setTextColor(...MUTED);
-      doc.setFontSize(8);
-      const u = doc.splitTextToSize(r.url, CONTENT_W) as string[];
-      doc.text(u, MARGIN, y);
+      y = ensure(doc, y, 16);
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(...TEXT);
-      y += u.length * 3.6 + 2;
+      const t = doc.splitTextToSize(r.title || r.url, CONTENT_W) as string[];
+      doc.text(t, MARGIN, y);
+      y += t.length * 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTED);
+      doc.text(r.source ?? "", MARGIN, y);
+      doc.setTextColor(...TEXT);
+      doc.setFontSize(10);
+      y += 5;
+      y = drawUrlLine(doc, r.url, y);
+      y += 2;
     }
     y += 4;
   }
