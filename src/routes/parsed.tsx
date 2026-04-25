@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ function ParsedScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="qc" />
+      <NavArrows current="parsed" />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Parsed hypothesis</h1>
         <p className="mt-1 text-sm text-muted-foreground">

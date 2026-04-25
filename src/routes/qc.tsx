@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Spinner } from "@/components/app/Spinner";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
 import { Button } from "@/components/ui/button";
@@ -165,6 +166,7 @@ function QCScreen() {
     return (
       <div className="min-h-screen">
         <AppHeader stage="qc" />
+        <NavArrows current="qc" />
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <p className="text-muted-foreground">Start from the hypothesis screen.</p>
           <Button asChild className="mt-4">
@@ -179,6 +181,7 @@ function QCScreen() {
     return (
       <div className="min-h-screen">
         <AppHeader stage="qc" />
+        <NavArrows current="qc" />
         <main className="mx-auto max-w-2xl px-6 py-12">
           <h1 className="text-2xl font-semibold tracking-tight">Searching scientific sources…</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -261,6 +264,7 @@ function QCScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="qc" />
+      <NavArrows current="qc" />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Literature Quality Control</h1>
         <p className="mt-1 text-sm text-muted-foreground">

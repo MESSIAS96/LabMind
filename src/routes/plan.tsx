@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { AppFooter } from "@/components/app/AppFooter";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
@@ -90,6 +91,7 @@ function PlanScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="plan" />
+      <NavArrows current="plan" />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">

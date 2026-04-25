@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Spinner } from "@/components/app/Spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,6 +78,7 @@ function InputScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="input" />
+      <NavArrows current="input" />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">
           Enter your scientific hypothesis

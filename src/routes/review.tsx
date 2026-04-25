@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppHeader } from "@/components/app/Stepper";
+import { NavArrows } from "@/components/app/NavArrows";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,6 +16,8 @@ import {
   FileSpreadsheet,
   Image as ImageIcon,
   FileType,
+  Bot,
+  Info,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -29,6 +32,8 @@ import {
 import { Spinner } from "@/components/app/Spinner";
 import { toast } from "sonner";
 import type { Correction } from "@/lib/types";
+import { useEffect, useRef } from "react";
+import { mapDAToReviewCorrections } from "@/lib/daToReview";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -147,6 +152,33 @@ function ReviewScreen() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  // Part F — pre-fill DA findings into the review form on first mount when
+  // (a) the user has run Devil's Advocate and (b) hasn't already entered any
+  // manual content yet. Banner is shown whenever the prefill happened in this
+  // session. The user may freely edit / clear any field afterwards.
+  const [daBannerOpen, setDaBannerOpen] = useState(false);
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    if (!s.devils_advocate?.critiques?.length) return;
+    const existing = s.review.corrections;
+    const hasUserContent = existing.some(
+      (c) => c.notes.trim() || c.issue_tags.length > 0 || c.rating > 0,
+    );
+    if (hasUserContent) {
+      // User already has corrections — don't overwrite, but still surface banner
+      // so they know DA results are available.
+      setDaBannerOpen(true);
+      prefilledRef.current = true;
+      return;
+    }
+    const mapped = mapDAToReviewCorrections(s.devils_advocate);
+    if (!mapped.length) return;
+    for (const c of mapped) s.addCorrection(c);
+    setDaBannerOpen(true);
+    prefilledRef.current = true;
+  }, [s]);
 
   const fProto = useServerFn(generateProtocol);
   const fMat = useServerFn(generateMaterials);
@@ -260,6 +292,7 @@ function ReviewScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader stage="review" />
+      <NavArrows current="review" />
       <main className="mx-auto max-w-4xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -307,9 +340,43 @@ function ReviewScreen() {
           </div>
         </div>
 
+        {daBannerOpen && (
+          <div className="mt-6 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
+            <Bot className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">
+                Devil's Advocate findings have been pre-loaded as a starting point.
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Edit, remove, or add your own corrections below. Each pre-filled note is marked 🤖.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDaBannerOpen(false)}
+              className="rounded p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {!daBannerOpen && !s.devils_advocate && (
+          <div className="mt-6 flex items-start gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="text-xs text-muted-foreground">
+              Review each section and enter corrections. The plan will be improved based on your input.
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 grid gap-4">
           {SECTIONS.map((sec) => (
-            <ReviewCard key={sec.key} sectionKey={sec.key} label={sec.label} />
+            <ReviewCard
+              key={`${sec.key}-${prefilledRef.current ? "da" : "plain"}`}
+              sectionKey={sec.key}
+              label={sec.label}
+            />
           ))}
         </div>
 
