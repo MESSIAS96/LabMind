@@ -333,6 +333,61 @@ export const runFullRetrieval = createServerFn({ method: "POST" })
     };
   });
 
+/* Per-source server functions so the client can show live status indicators. */
+
+export const fetchProtocolsIO = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return { results: await searchProtocolsIO(`${p.intervention} ${p.assay_method} ${p.model_system}`) };
+  });
+
+export const fetchPubMed = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return { results: await searchPubMed(`${p.intervention} ${p.assay_method} ${p.model_system}`) };
+  });
+
+export const fetchAddgene = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis; experiment_type: string }) => input)
+  .handler(async ({ data }) => {
+    if (!MOLECULAR_TYPES.has(data.experiment_type)) return { results: [] as SearchResult[] };
+    const entity = data.parsed.key_entities?.[0] ?? data.parsed.intervention;
+    return { results: await searchAddgene(entity) };
+  });
+
+export const fetchTavilyProtocols = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    const queries = p.search_queries?.length
+      ? p.search_queries
+      : [`${p.intervention} ${p.assay_method} ${p.model_system}`];
+    return { results: await tavilySearchProtocolRepos(queries) };
+  });
+
+export const fetchTavilySuppliers = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    const ents = p.key_entities?.length ? p.key_entities : [p.intervention];
+    return {
+      results: await tavilySearchSuppliersHelper(ents.map((e) => `${e} ${p.model_system} catalog`)),
+    };
+  });
+
+export const fetchTavilyValidation = createServerFn({ method: "POST" })
+  .inputValidator((input: { parsed: ParsedHypothesis }) => input)
+  .handler(async ({ data }) => {
+    const p = data.parsed;
+    return {
+      results: await tavilySearchValidationHelper(
+        `${p.assay_method} validation controls ${p.model_system}`,
+      ),
+    };
+  });
+
 /* -------------------- Server functions -------------------- */
 
 export const parseHypothesis = createServerFn({ method: "POST" })
