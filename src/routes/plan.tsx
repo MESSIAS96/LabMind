@@ -8,9 +8,9 @@ import { useApp } from "@/lib/store";
 import { PlanTabs } from "@/components/app/PlanTabs";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
 import { DevilsAdvocatePanel, ConfidenceStars } from "@/components/app/DevilsAdvocate";
-import { Download, MessageSquare, FileText, FileSpreadsheet, ChevronDown, Loader2, Image as ImageIcon, FileType } from "lucide-react";
+import { Download, MessageSquare, FileText, FileSpreadsheet, ChevronDown, Loader2, Image as ImageIcon, FileType, CheckCircle2 } from "lucide-react";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import {
   DropdownMenu,
@@ -21,7 +21,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { runDevilsAdvocate } from "@/server/ai.functions";
 import { toast } from "sonner";
-import { getRelevantMemory } from "@/lib/memoryBank";
+import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
 import { LearningPanel } from "@/components/app/LearningPanel";
 
 export const Route = createFileRoute("/plan")({
@@ -57,10 +57,11 @@ function PlanScreen() {
     }
   };
 
-  const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(s);
+      else if (kind === "recipe") await exportProtocolRecipePDF(s);
       else if (kind === "xlsx") exportToXLSX(s);
       else if (kind === "gantt-png") await exportGanttPNG();
       else if (kind === "gantt-pdf") await exportGanttPDF();
@@ -135,6 +136,12 @@ function PlanScreen() {
                   onSelect={() => runExport("pdf")}
                 />
                 <ExportRow
+                  icon={<FileText className="h-4 w-4 text-primary" />}
+                  label="Detailed Protocol Recipe PDF"
+                  sub="Full bench-ready recipe (separate file)"
+                  onSelect={() => runExport("recipe")}
+                />
+                <ExportRow
                   icon={<FileSpreadsheet className="h-4 w-4 text-primary" />}
                   label="Supplier & Budget XLSX"
                   sub="Materials, costs, links, checklist"
@@ -162,6 +169,25 @@ function PlanScreen() {
             </DropdownMenu>
             <Button onClick={() => navigate({ to: "/review" })}>
               <MessageSquare className="mr-2 h-4 w-4" /> Scientist Review
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                try {
+                  savePlanToMemory({
+                    state: s,
+                    finalPlan: s.experiment_plan,
+                    approved: true,
+                    revision_count: s.review.regenerated_plan ? 2 : 1,
+                  });
+                  toast.success("Plan approved · saved to learning memory");
+                } catch (err) {
+                  console.warn("memory save failed", err);
+                  toast.error("Could not save to memory");
+                }
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Approve & save
             </Button>
           </div>
         </div>
