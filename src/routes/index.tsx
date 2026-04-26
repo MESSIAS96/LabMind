@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "LabMind" },
       {
         property: "og:description",
-        content: "Turn any scientific idea into a lab-ready experiment plan — in minutes.",
+        content: "Turn any scientific idea into a lab-ready experiment plan in minutes.",
       },
     ],
   }),
@@ -144,7 +144,7 @@ function Landing() {
             style={{ borderColor: TEAL }}
           >
             <p className="text-balance text-lg font-medium text-foreground sm:text-xl">
-              Turn any scientific idea into a lab-ready experiment plan — in minutes.
+              Turn any scientific idea into a lab-ready experiment plan in minutes.
             </p>
             <p className="mt-3 text-balance text-sm text-muted-foreground">
               Literature check. Grounded protocol. Real suppliers. Budget. Timeline. Standards compliance.
@@ -153,11 +153,6 @@ function Landing() {
 
           {/* Thin horizontal rule */}
           <div className="mt-8 h-px w-full max-w-md" style={{ backgroundColor: "#d4d1ca" }} />
-
-          {/* Social proof */}
-          <p className="mt-4 text-xs text-muted-foreground">
-            Built on Semantic Scholar · PubMed · protocols.io · Thermo Fisher · Sigma-Aldrich
-          </p>
 
           <div className="mt-9 flex flex-col items-center gap-3">
             <Button asChild size="lg" className="h-12 px-7 text-base">
