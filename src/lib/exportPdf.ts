@@ -566,3 +566,179 @@ export async function exportGanttPNG() {
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
+
+/**
+ * Pass 10 — dedicated detailed protocol recipe PDF.
+ * Kept separate from the main report to keep the report concise.
+ */
+export async function exportProtocolRecipePDF(state: AppState) {
+  const proto = state.experiment_plan.protocol;
+  if (!proto || !proto.protocol_steps?.length) {
+    throw new Error("No protocol available to export");
+  }
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const today = new Date().toLocaleDateString();
+  const hyp = state.input_hypothesis || "";
+
+  // Cover
+  drawCoverLogo(doc, MARGIN, MARGIN);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.setTextColor(...TEAL);
+  doc.text("LabMind", MARGIN + 18, MARGIN + 8);
+  doc.setFontSize(10);
+  doc.setTextColor(...MUTED);
+  doc.text("Detailed Protocol Recipe", MARGIN + 18, MARGIN + 14);
+
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.6);
+  doc.line(MARGIN, 60, PAGE_W - MARGIN, 60);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(...TEXT);
+  doc.text("Bench-Ready Recipe", MARGIN, 78);
+
+  body(doc);
+  doc.setFontSize(10);
+  doc.setTextColor(...MUTED);
+  const sub = doc.splitTextToSize(hyp.slice(0, 240) + (hyp.length > 240 ? "…" : ""), CONTENT_W) as string[];
+  doc.text(sub, MARGIN, 88);
+
+  doc.setFontSize(9);
+  doc.text(
+    `Generated ${today} · Experiment type: ${state.experiment_type ?? "—"} · ${proto.protocol_steps.length} step(s)`,
+    MARGIN,
+    PAGE_H - 25,
+  );
+
+  // Steps
+  doc.addPage();
+  let y = MARGIN;
+  y = setHeader(doc, "Step-by-Step Recipe", y);
+
+  for (const s of proto.protocol_steps) {
+    y = ensure(doc, y, 40);
+    // Step header bar
+    doc.setFillColor(...TEAL_LIGHT);
+    doc.rect(MARGIN, y - 5, CONTENT_W, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...TEAL);
+    const conf = s.confidence ? `  [${s.confidence.toUpperCase()}]` : "";
+    doc.text(`Step ${s.step_number} — ${s.title}${conf}`, MARGIN + 2, y);
+    y += 6;
+
+    body(doc);
+    if (s.objective) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Objective:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      y = paragraph(doc, s.objective, y);
+    }
+
+    if (s.materials?.length) {
+      y = ensure(doc, y, 12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Materials for this step:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      for (const m of s.materials) {
+        y = ensure(doc, y, 6);
+        y = paragraph(doc, `  • ${m}`, y);
+      }
+    }
+
+    if (s.actions?.length) {
+      y = ensure(doc, y, 12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Actions:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      for (let i = 0; i < s.actions.length; i++) {
+        y = ensure(doc, y, 8);
+        y = paragraph(doc, `  ${i + 1}. ${s.actions[i]}`, y);
+      }
+    }
+
+    const params = s.parameters
+      ? Object.entries(s.parameters).filter(([, v]) => v)
+      : [];
+    if (params.length) {
+      y = ensure(doc, y, 24);
+      autoTable(doc, {
+        startY: y,
+        head: [["Parameter", "Value"]],
+        body: params.map(([k, v]) => [k.replace(/_/g, " "), String(v)]),
+        theme: "grid",
+        headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
+        bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
+        margin: { left: MARGIN, right: MARGIN },
+        columnStyles: { 0: { cellWidth: 45, fontStyle: "bold" } },
+      });
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4;
+    }
+
+    if (s.checkpoint) {
+      y = ensure(doc, y, 10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Checkpoint:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      y = paragraph(doc, s.checkpoint, y);
+    }
+    if (s.failure_mode) {
+      y = ensure(doc, y, 10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Common failure mode:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      y = paragraph(doc, s.failure_mode, y);
+    }
+    if (s.troubleshooting) {
+      y = ensure(doc, y, 10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Troubleshooting:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      y = paragraph(doc, s.troubleshooting, y);
+    }
+    if (s.safety) {
+      y = ensure(doc, y, 10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Safety:", MARGIN, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      y = paragraph(doc, s.safety, y);
+    }
+
+    // Divider
+    y += 2;
+    doc.setDrawColor(220, 220, 215);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+    y += 6;
+  }
+
+  if (proto.assumptions.length) {
+    y = ensure(doc, y, 20);
+    y = setHeader(doc, "Assumptions", y);
+    proto.assumptions.forEach((a) => {
+      y = ensure(doc, y, 8);
+      y = paragraph(doc, "• " + a, y);
+    });
+  }
+  if (proto.risk_points.length) {
+    y = ensure(doc, y, 20);
+    y = setHeader(doc, "Risk points", y);
+    proto.risk_points.forEach((a) => {
+      y = ensure(doc, y, 8);
+      y = paragraph(doc, "• " + a, y);
+    });
+  }
+
+  addPageNumbers(doc);
+  const date = new Date().toISOString().slice(0, 10);
+  doc.save(`labmind_protocol_recipe_${date}.pdf`);
+}
