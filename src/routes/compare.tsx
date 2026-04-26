@@ -87,14 +87,12 @@ function ImprovedPlanScreen() {
   const improvedState = { ...s, experiment_plan: regen };
   const memory = p ? getRelevantMemory(p, s.experiment_type) : { similar_plans: [], relevant_corrections: [], learned_patterns: [] };
 
-  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(improvedState);
       else if (kind === "recipe") await exportProtocolRecipePDF(improvedState);
       else if (kind === "xlsx") exportToXLSX(improvedState);
-      else if (kind === "gantt-png") await exportGanttPNG();
-      else if (kind === "gantt-pdf") await exportGanttPDF();
       else downloadPlanText(improvedState);
       toast.success("Downloaded successfully");
     } catch (e) {
