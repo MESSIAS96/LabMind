@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { changedSections, downloadChangeLog, PLAN_SECTIONS } from "@/lib/diffPlan";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import { toast } from "sonner";
 import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
@@ -89,10 +89,11 @@ function ImprovedPlanScreen() {
   const improvedState = { ...s, experiment_plan: regen };
   const memory = p ? getRelevantMemory(p, s.experiment_type) : { similar_plans: [], relevant_corrections: [], learned_patterns: [] };
 
-  const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(improvedState);
+      else if (kind === "recipe") await exportProtocolRecipePDF(improvedState);
       else if (kind === "xlsx") exportToXLSX(improvedState);
       else if (kind === "gantt-png") await exportGanttPNG();
       else if (kind === "gantt-pdf") await exportGanttPDF();
@@ -163,6 +164,9 @@ function ImprovedPlanScreen() {
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("pdf"); }}>
                   <FileText className="mr-2 h-4 w-4 text-primary" /> Full Report PDF
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("recipe"); }}>
+                  <FileText className="mr-2 h-4 w-4 text-primary" /> Detailed Protocol Recipe PDF
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("xlsx"); }}>
                   <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" /> Supplier & Budget XLSX
                 </DropdownMenuItem>
@@ -177,6 +181,25 @@ function ImprovedPlanScreen() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              size="sm"
+              onClick={() => {
+                try {
+                  savePlanToMemory({
+                    state: s,
+                    finalPlan: regen,
+                    approved: true,
+                    revision_count: 2,
+                  });
+                  toast.success("Improved plan approved · saved to learning memory");
+                } catch (err) {
+                  console.warn("memory save failed", err);
+                  toast.error("Could not save to memory");
+                }
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Approve & save
+            </Button>
             <Button
               size="sm"
               variant="ghost"
