@@ -319,7 +319,7 @@ function ImprovedPlanView({
             : "rounded-xl border bg-card p-4"
         }
       >
-        <PlanTabs plan={regen} retrieval={retrieval} />
+        <PlanTabs plan={regen} retrieval={retrieval} enhanced version={2} />
       </div>
     </div>
   );
