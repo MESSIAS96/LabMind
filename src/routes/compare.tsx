@@ -29,14 +29,12 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
-  Image as ImageIcon,
-  FileType,
   ChevronDown,
   Loader2,
 } from "lucide-react";
 import { changedSections, downloadChangeLog, PLAN_SECTIONS } from "@/lib/diffPlan";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
+import { exportToPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import { toast } from "sonner";
 import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
