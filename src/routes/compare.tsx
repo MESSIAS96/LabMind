@@ -166,12 +166,6 @@ function ImprovedPlanScreen() {
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("xlsx"); }}>
                   <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" /> Supplier & Budget XLSX
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-png"); }}>
-                  <ImageIcon className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PNG
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-pdf"); }}>
-                  <FileType className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PDF
-                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("txt"); }}>
                   <FileText className="mr-2 h-4 w-4 text-muted-foreground" /> Plan Summary TXT
                 </DropdownMenuItem>
