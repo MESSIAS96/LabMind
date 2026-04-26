@@ -22,6 +22,7 @@ import { GanttChart } from "@/components/app/GanttChart";
 import { Button } from "@/components/ui/button";
 import { Download, FileImage, Copy } from "lucide-react";
 import { exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { findSupplierUrl } from "@/lib/exportXlsx";
 import { toast } from "sonner";
 import { useState } from "react";
 import { FlowchartPanel } from "@/components/app/FlowchartPanel";
@@ -199,9 +200,29 @@ export function PlanTabs({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plan.materials.materials.map((m, i) => (
+                {plan.materials.materials.map((m, i) => {
+                  const supplierSources = [
+                    ...retrieval.supplierSources,
+                    ...retrieval.plasmidSources,
+                  ];
+                  const url = findSupplierUrl(m.supplier, m.item_name, supplierSources);
+                  return (
                   <TableRow key={i}>
-                    <TableCell className="font-medium">{m.item_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary font-medium no-underline hover:underline"
+                        >
+                          {m.item_name}
+                          <span className="ml-1 text-[0.85em]">↗</span>
+                        </a>
+                      ) : (
+                        m.item_name
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <SourceBadge source={inferSupplierTag(m.supplier)} />
@@ -222,7 +243,8 @@ export function PlanTabs({
                       </span>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
