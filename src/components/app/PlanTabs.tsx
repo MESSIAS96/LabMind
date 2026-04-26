@@ -138,16 +138,16 @@ export function PlanTabs({
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                           {s.step_number}
                         </span>
-                        <span className="font-medium">{s.title}</span>
+                        <span className="font-medium">{stripLeadingNumber(s.title)}</span>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-2 pl-9 text-sm">
-                        <p className="text-muted-foreground">{s.objective}</p>
+                        <p className="text-muted-foreground">{stripLeadingNumber(s.objective)}</p>
                         {s.actions?.length > 0 && (
                           <ol className="list-decimal space-y-1 pl-5 text-sm">
                             {s.actions.map((a, i) => (
-                              <li key={i}>{a}</li>
+                              <li key={i}>{stripLeadingNumber(a)}</li>
                             ))}
                           </ol>
                         )}
