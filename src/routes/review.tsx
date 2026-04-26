@@ -14,8 +14,6 @@ import {
   Loader2,
   FileText,
   FileSpreadsheet,
-  Image as ImageIcon,
-  FileType,
   Bot,
   Info,
 } from "lucide-react";
