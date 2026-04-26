@@ -115,6 +115,103 @@ function noveltyColor(signal?: string): [number, number, number] {
   return [220, 220, 220];
 }
 
+let _mermaidReady = false;
+function ensureMermaidReady() {
+  if (_mermaidReady) return;
+  try {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "neutral",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+    });
+  } catch {
+    /* already initialized */
+  }
+  _mermaidReady = true;
+}
+
+/** Render a Mermaid SVG string to a PNG dataURL via a Canvas. */
+async function mermaidSvgToPng(svgMarkup: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // upscale for crisp output
+          const scale = 2;
+          const w = (img.naturalWidth || 800) * scale;
+          const h = (img.naturalHeight || 600) * scale;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            resolve(null);
+            return;
+          }
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/png");
+          URL.revokeObjectURL(url);
+          resolve({ dataUrl, width: w, height: h });
+        } catch {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function addFlowchartPage(doc: jsPDF, state: AppState) {
+  const proto = state.experiment_plan.protocol;
+  if (!proto || !proto.protocol_steps?.length) return;
+  try {
+    ensureMermaidReady();
+    const def = generateMermaidFlowchart(proto, state.experiment_plan.validation);
+    const id = `pdfflow_${Date.now()}`;
+    const { svg } = await mermaid.render(id, def);
+    const png = await mermaidSvgToPng(svg);
+    if (!png) return;
+
+    doc.addPage();
+    let y = MARGIN;
+    y = setHeader(doc, "Experimental Flowchart", y);
+    body(doc);
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(10);
+    doc.text("Visual sequence of the main protocol stages.", MARGIN, y);
+    y += 8;
+    doc.setTextColor(...TEXT);
+
+    const maxW = Math.min(CONTENT_W, 170);
+    const ratio = png.height / png.width;
+    let drawW = maxW;
+    let drawH = drawW * ratio;
+    const availableH = PAGE_H - y - MARGIN - 10;
+    if (drawH > availableH) {
+      drawH = availableH;
+      drawW = drawH / ratio;
+    }
+    const x = (PAGE_W - drawW) / 2;
+    doc.addImage(png.dataUrl, "PNG", x, y, drawW, drawH);
+  } catch (e) {
+    console.warn("Flowchart PDF embed failed:", e);
+  }
+}
+
 function confidenceColor(c: string): [number, number, number] {
   if (c === "confirmed") return GREEN;
   if (c === "estimated") return AMBER;
