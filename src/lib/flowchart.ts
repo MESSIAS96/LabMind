@@ -10,8 +10,15 @@ function sanitize(text: string): string {
     .slice(0, 60);
 }
 
+/** Shorten a step title to 3–6 words for compact node labels. */
+function shortLabel(text: string): string {
+  const cleaned = sanitize(text).replace(/^\s*\d+(?:\.\d+)?[.\)\-:]?\s+/, "");
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const max = 6;
+  return (words.length > max ? words.slice(0, max).join(" ") + "…" : words.join(" ")) || "Step";
+}
+
 function nodeId(i: number): string {
-  // Excel-style A, B, ... Z, AA, AB ...
   let n = i;
   let s = "";
   do {
@@ -21,39 +28,97 @@ function nodeId(i: number): string {
   return "N" + s;
 }
 
+type StepCategory =
+  | "prep"
+  | "model"
+  | "treatment"
+  | "incubation"
+  | "measurement"
+  | "analysis"
+  | "validation"
+  | "interpretation"
+  | "other";
+
+const PHASE_ORDER: StepCategory[] = [
+  "prep",
+  "model",
+  "treatment",
+  "incubation",
+  "measurement",
+  "analysis",
+  "validation",
+  "interpretation",
+  "other",
+];
+
+function categorize(text: string): StepCategory {
+  const t = (text || "").toLowerCase();
+  if (/(repeat|retry|fail|troubleshoot)/.test(t)) return "other";
+  if (/(interpret|report|conclude|summari[sz]e|publish)/.test(t)) return "interpretation";
+  if (/(validat|verif|qc\b|quality control|confirm)/.test(t)) return "validation";
+  if (/(analy[sz]|statistic|quantif|normali[sz]|compute|calculat)/.test(t)) return "analysis";
+  if (/(measur|read\s*out|readout|imag|assay|detect|record|scan|elisa|mtt|western|qpcr|\bpcr\b|sequenc|cytomet)/.test(t)) return "measurement";
+  if (/(incubat|cultur|grow|wait|recover|rest)/.test(t)) return "incubation";
+  if (/(treat|administ|dose|apply|inject|transfect|stimul|induce|expos)/.test(t)) return "treatment";
+  if (/(seed|plate|harvest|isolate|lyse|fix|stain|wash|extract|prepare\s+(cells|tissue|sample)|cell\s+prep|sample\s+prep|model)/.test(t)) return "model";
+  if (/(prepar|reagent|buffer|stock|aliquot|setup|set up|equip|materi)/.test(t)) return "prep";
+  return "other";
+}
+
+/** Sort step indices by phase order, preserving relative order within a phase. */
+function orderedStepIndices(categories: StepCategory[]): number[] {
+  const rank = (c: StepCategory) => PHASE_ORDER.indexOf(c);
+  return categories
+    .map((c, i) => ({ i, r: rank(c) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.i);
+}
+
 /**
- * Build a Mermaid flowchart definition from protocol steps + validation plan.
- * - Caps interior nodes at ~10 to keep diagram readable (Start + interior + decision + end)
- * - Adds a QC-checkpoint decision diamond before validation
- * - Adds a "Repeat failed step" loop-back arrow
+ * Build a Mermaid flowchart definition from the actual protocol steps.
+ * Pass 12 rules:
+ *  - Represent every major step (cap 15); merge adjacent prep/model substeps if exceeded
+ *  - Reorder by scientific phase (prep → model → treatment → incubation → measurement
+ *    → analysis → validation → interpretation), preserving in-phase order
+ *  - QC decision diamond only if checkpoint/control language is present
+ *  - Loop-back occurs BEFORE End; End is the single terminal node
+ *  - End has zero outgoing edges
  */
 export function generateMermaidFlowchart(
   protocol: Protocol | undefined,
   validation: Validation | undefined,
 ): string {
   const steps = protocol?.protocol_steps ?? [];
-  const maxInterior = 9;
-  let interior: { id: string; label: string }[] = [];
-
-  if (steps.length <= maxInterior) {
-    interior = steps.map((s, i) => ({
-      id: nodeId(i + 1),
-      label: sanitize(`${s.step_number}. ${s.title}`),
-    }));
-  } else {
-    // Merge by even sampling — keep first, last, and evenly spaced middle steps
-    const indices = new Set<number>([0, steps.length - 1]);
-    const slots = maxInterior - 2;
-    for (let k = 1; k <= slots; k++) {
-      const idx = Math.round((k * (steps.length - 1)) / (slots + 1));
-      indices.add(idx);
-    }
-    const sorted = Array.from(indices).sort((a, b) => a - b);
-    interior = sorted.map((idx, i) => ({
-      id: nodeId(i + 1),
-      label: sanitize(`${steps[idx].step_number}. ${steps[idx].title}`),
-    }));
+  if (!steps.length) {
+    return "flowchart TD\n  N0([Start]) --> NE([End])";
   }
+
+  const categories: StepCategory[] = steps.map((s) =>
+    categorize(`${s.title ?? ""} ${s.objective ?? ""}`),
+  );
+
+  let order = orderedStepIndices(categories);
+
+  const MAX_NODES = 15;
+  if (order.length > MAX_NODES) {
+    // Merge consecutive same-category prep/model substeps
+    const merged: number[] = [];
+    let lastCat: StepCategory | null = null;
+    for (const i of order) {
+      const c = categories[i];
+      const isMergeable = (c === "prep" || c === "model") && c === lastCat;
+      if (isMergeable && merged.length >= MAX_NODES - 2) continue;
+      merged.push(i);
+      lastCat = c;
+    }
+    order = merged.slice(0, MAX_NODES);
+  }
+
+  const interior = order.map((srcIdx, i) => ({
+    id: nodeId(i + 1),
+    label: shortLabel(steps[srcIdx].title || `Step ${steps[srcIdx].step_number}`),
+    cat: categories[srcIdx],
+  }));
 
   const lines: string[] = ["flowchart TD"];
   const startId = "N0";
@@ -66,32 +131,45 @@ export function generateMermaidFlowchart(
     prev = node.id;
   }
 
-  // QC decision diamond
   const hasControls = (validation?.controls?.length ?? 0) > 0;
-  const decisionLabel = hasControls ? "Controls acceptable?" : "QC checkpoint passed?";
-  const decisionId = "NQ";
-  lines.push(`  ${decisionId}{${decisionLabel}}`);
-  lines.push(`  ${prev} --> ${decisionId}`);
-
-  // Validation / end
-  const validationLabel = sanitize(
-    validation?.primary_endpoint
-      ? `Validate: ${validation.primary_endpoint}`
-      : "Validation and report",
+  const hasCheckpointLang =
+    hasControls ||
+    interior.some((n) => n.cat === "validation") ||
+    (protocol?.protocol_steps ?? []).some((s) =>
+      /(checkpoint|qc|quality control|repeat|retry|fail)/i.test(
+        `${s.checkpoint ?? ""} ${s.failure_mode ?? ""} ${s.troubleshooting ?? ""}`,
+      ),
+    );
+  const measurementNode = [...interior].reverse().find(
+    (n) => n.cat === "measurement" || n.cat === "incubation",
   );
-  const validationId = "NV";
-  const endId = "NE";
-  lines.push(`  ${validationId}["${validationLabel}"]`);
-  lines.push(`  ${endId}([End])`);
-  lines.push(`  ${decisionId} -->|Yes| ${validationId}`);
 
-  // Loop-back: repeat failed step (back to last interior node)
-  const loopTarget = interior.length > 0 ? interior[interior.length - 1].id : startId;
-  const repeatId = "NR";
-  lines.push(`  ${repeatId}[Repeat failed step]`);
-  lines.push(`  ${decisionId} -->|No| ${repeatId}`);
-  lines.push(`  ${repeatId} --> ${loopTarget}`);
-  lines.push(`  ${validationId} --> ${endId}`);
+  const endId = "NE";
+
+  if (hasCheckpointLang && measurementNode) {
+    const decisionId = "NQ";
+    const decisionLabel = hasControls ? "QC and controls acceptable?" : "QC checkpoint passed?";
+    lines.push(`  ${decisionId}{${decisionLabel}}`);
+    lines.push(`  ${prev} --> ${decisionId}`);
+
+    const interpretId = "NI";
+    const interpretLabel = validation?.primary_endpoint
+      ? shortLabel(`Interpret ${validation.primary_endpoint}`)
+      : "Interpret results";
+    lines.push(`  ${interpretId}["${interpretLabel}"]`);
+    lines.push(`  ${decisionId} -->|Yes| ${interpretId}`);
+
+    const repeatId = "NR";
+    lines.push(`  ${repeatId}[Repeat assay]`);
+    lines.push(`  ${decisionId} -->|No| ${repeatId}`);
+    lines.push(`  ${repeatId} --> ${measurementNode.id}`);
+
+    lines.push(`  ${endId}([End])`);
+    lines.push(`  ${interpretId} --> ${endId}`);
+  } else {
+    lines.push(`  ${endId}([End])`);
+    lines.push(`  ${prev} --> ${endId}`);
+  }
 
   return lines.join("\n");
 }
