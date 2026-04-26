@@ -30,14 +30,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "LabMind" },
+      { name: "description", content: "Turn any scientific idea into a lab-ready experiment plan in minutes." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "LabMind" },
+      { property: "og:description", content: "Turn any scientific idea into a lab-ready experiment plan in minutes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "LabMind" },
+      { name: "twitter:description", content: "Turn any scientific idea into a lab-ready experiment plan in minutes." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1554ad61-1ce1-4425-8e2b-e5604a64e58a/id-preview-88eab28a--027b93df-aea7-4bc5-8a85-c4d6ce0bbc09.lovable.app-1777197512652.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1554ad61-1ce1-4425-8e2b-e5604a64e58a/id-preview-88eab28a--027b93df-aea7-4bc5-8a85-c4d6ce0bbc09.lovable.app-1777197512652.png" },
     ],
     links: [
       {
