@@ -384,17 +384,11 @@ export async function exportToPDF(state: AppState) {
     y += 12;
     body(doc);
     state.literature_qc.references.forEach((r, i) => {
-      y = ensure(doc, y, 18);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${i + 1}. ${r.title}`, MARGIN, y, { maxWidth: CONTENT_W });
-      y += 4.5;
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...MUTED);
-      doc.text(`${r.source}`, MARGIN, y);
-      doc.setTextColor(...TEXT);
-      y += 5;
-      if (r.url) y = drawUrlLine(doc, r.url, y);
-      y += 2;
+      y = addReferenceBlock(
+        doc,
+        { title: `${i + 1}. ${r.title}`, source: r.source, url: r.url },
+        y,
+      );
     });
   }
 
