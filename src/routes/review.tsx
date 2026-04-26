@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import type { Correction } from "@/lib/types";
 import { useEffect, useRef } from "react";
 import { mapDAToReviewCorrections } from "@/lib/daToReview";
+import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -224,6 +225,7 @@ function ReviewScreen() {
   const regenerate = async () => {
     if (!s.parsed_hypothesis) return;
     const cors = s.review.corrections;
+    const memory = getRelevantMemory(s.parsed_hypothesis, s.experiment_type);
     try {
       setStage("Regenerating protocol…");
       const protocol = await fProto({
@@ -231,6 +233,7 @@ function ReviewScreen() {
           parsed: s.parsed_hypothesis,
           protocol_evidence: s.retrieval_results.protocolSources,
           corrections: cors,
+          memory,
         },
       });
       s.setRegeneratedPart("protocol", protocol);
@@ -244,6 +247,7 @@ function ReviewScreen() {
             ...s.retrieval_results.plasmidSources,
           ],
           corrections: cors,
+          memory,
         },
       });
       s.setRegeneratedPart("materials", materials);
@@ -255,6 +259,7 @@ function ReviewScreen() {
           materials,
           budget_cap: s.budget_cap,
           corrections: cors,
+          memory,
         },
       });
       s.setRegeneratedPart("budget", budget);
@@ -266,6 +271,7 @@ function ReviewScreen() {
           protocol,
           timeline_target: s.timeline_target,
           corrections: cors,
+          memory,
         },
       });
       s.setRegeneratedPart("timeline", timeline);
@@ -276,9 +282,22 @@ function ReviewScreen() {
           parsed: s.parsed_hypothesis,
           validation_evidence: s.retrieval_results.validationSources,
           corrections: cors,
+          memory,
         },
       });
       s.setRegeneratedPart("validation", validation);
+
+      // Persist regenerated plan into the learning memory bank
+      try {
+        savePlanToMemory({
+          state: s,
+          finalPlan: { protocol, materials, budget, timeline, validation },
+          approved: false,
+          revision_count: 2,
+        });
+      } catch (err) {
+        console.warn("memory save failed", err);
+      }
 
       navigate({ to: "/compare" });
     } catch (e) {

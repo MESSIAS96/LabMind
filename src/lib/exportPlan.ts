@@ -53,9 +53,29 @@ export function buildPlanText(state: AppState): string {
   if (plan.protocol) {
     out += section("Protocol");
     plan.protocol.protocol_steps.forEach((s) => {
-      out += line(`${s.step}. ${s.title}`);
-      out += line(`   ${s.description}`);
-      if (s.critical_parameters) out += line(`   Critical: ${s.critical_parameters}`);
+      out += line(`${s.step_number}. ${s.title}`);
+      if (s.objective) out += line(`   Objective: ${s.objective}`);
+      if (s.materials?.length) {
+        out += line(`   Materials:`);
+        s.materials.forEach((m) => (out += line(`     - ${m}`)));
+      }
+      if (s.actions?.length) {
+        out += line(`   Actions:`);
+        s.actions.forEach((a, i) => (out += line(`     ${i + 1}. ${a}`)));
+      }
+      if (s.parameters) {
+        const pp = Object.entries(s.parameters).filter(([, v]) => v);
+        if (pp.length) {
+          out += line(`   Parameters:`);
+          pp.forEach(([k, v]) => (out += line(`     - ${k.replace(/_/g, " ")}: ${v}`)));
+        }
+      }
+      if (s.checkpoint) out += line(`   Checkpoint: ${s.checkpoint}`);
+      if (s.failure_mode) out += line(`   Failure mode: ${s.failure_mode}`);
+      if (s.troubleshooting) out += line(`   Troubleshooting: ${s.troubleshooting}`);
+      if (s.safety) out += line(`   Safety: ${s.safety}`);
+      if (s.confidence) out += line(`   Confidence: ${s.confidence}`);
+      out += line();
     });
     if (plan.protocol.assumptions.length) {
       out += line();

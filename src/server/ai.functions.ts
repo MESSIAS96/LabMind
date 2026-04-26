@@ -14,6 +14,8 @@ import type {
   RetrievalResults,
   DevilsAdvocateReview,
 } from "@/lib/types";
+import type { MemoryContext } from "@/lib/memoryBank";
+import { memoryToPromptBlock } from "@/lib/memoryBank";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
@@ -593,18 +595,55 @@ function correctionsBlock(corrections: Correction[] | undefined, section: string
     .join("\n")}`;
 }
 
+function memoryBlock(mem: MemoryContext | undefined): string {
+  if (!mem) return "";
+  return memoryToPromptBlock(mem);
+}
+
+const REGEN_SYSTEM_PREFIX = `You are improving a laboratory experiment plan using:
+1. the current plan,
+2. current scientific review corrections,
+3. prior reviewed high-quality plans from similar experiments,
+4. learned correction patterns from previous users.
+
+Your job is to produce a version that is more operationally realistic, more detailed, more reproducible, more standards-compliant, and more specific about controls, materials, and validation.
+
+Rules:
+- Apply explicit corrections first.
+- Then apply relevant lessons from prior plans and correction patterns.
+- Do not copy prior plans verbatim.
+- Improve specificity where evidence exists; if precision is unsupported, mark it as needing experimental validation.
+- Preserve correctness from the current version.
+- Prefer clarity and executability over verbosity.
+`;
+
 export const generateProtocol = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       parsed: ParsedHypothesis;
       protocol_evidence: SearchResult[];
       corrections?: Correction[];
+      memory?: MemoryContext;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const hasReview = (data.corrections?.length ?? 0) > 0;
+    const sysHeader = hasReview ? REGEN_SYSTEM_PREFIX + "\n\n" : "";
     return callAIJson<Protocol>(
-      "You are a bioscience protocol designer. Generate a numbered, step-by-step laboratory protocol grounded in the retrieved protocol evidence. Include concentrations, temperatures, timing, controls, and replicate guidance. Mark uncertain parameters as 'to validate experimentally'.",
-      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nProtocol evidence:\n${evidenceBlock(data.protocol_evidence)}${correctionsBlock(data.corrections, "protocol")}`,
+      sysHeader +
+        `You are a senior laboratory scientist writing a protocol that must be immediately usable by a real lab team.
+
+Generate a highly detailed, operational protocol in a scientific recipe format.
+
+Requirements:
+- Use numbered major steps via step_number (start at 1).
+- For each step include: title, objective, materials (step-specific), actions (numbered exact actions), parameters (concentration, volume, temperature, duration, other_conditions where relevant), checkpoint (expected observation), failure_mode, troubleshooting, safety (when relevant), confidence (high|medium|low).
+- Write like a precise lab manual, not a summary.
+- Prefer concrete details from retrieved evidence.
+- If a numeric parameter is not supported by evidence, write "Parameter to validate experimentally" instead of inventing precision.
+- Include replicates, control handling, labelling, and sterility notes where relevant.
+- Keep steps easy to follow under bench conditions.`,
+      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nProtocol evidence:\n${evidenceBlock(data.protocol_evidence)}${correctionsBlock(data.corrections, "protocol")}${memoryBlock(data.memory)}`,
       "protocol",
       {
         type: "object",
@@ -614,12 +653,29 @@ export const generateProtocol = createServerFn({ method: "POST" })
             items: {
               type: "object",
               properties: {
-                step: { type: "number" },
+                step_number: { type: "number" },
                 title: { type: "string" },
-                description: { type: "string" },
-                critical_parameters: { type: "string" },
+                objective: { type: "string" },
+                materials: { type: "array", items: { type: "string" } },
+                actions: { type: "array", items: { type: "string" } },
+                parameters: {
+                  type: "object",
+                  properties: {
+                    concentration: { type: "string" },
+                    volume: { type: "string" },
+                    temperature: { type: "string" },
+                    duration: { type: "string" },
+                    other_conditions: { type: "string" },
+                  },
+                },
+                checkpoint: { type: "string" },
+                failure_mode: { type: "string" },
+                troubleshooting: { type: "string" },
+                safety: { type: "string" },
+                confidence: { type: "string", enum: ["high", "medium", "low"] },
+                source_links: { type: "array", items: { type: "string" } },
               },
-              required: ["step", "title", "description"],
+              required: ["step_number", "title", "objective", "actions"],
             },
           },
           assumptions: { type: "array", items: { type: "string" } },
@@ -637,12 +693,16 @@ export const generateMaterials = createServerFn({ method: "POST" })
       parsed: ParsedHypothesis;
       supplier_evidence: SearchResult[];
       corrections?: Correction[];
+      memory?: MemoryContext;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const hasReview = (data.corrections?.length ?? 0) > 0;
+    const sysHeader = hasReview ? REGEN_SYSTEM_PREFIX + "\n\n" : "";
     return callAIJson<Materials>(
-      "You are a lab supply specialist. Generate a practical materials list using the retrieved supplier evidence. For each item include: item_name, supplier, catalog_number (or 'catalog to confirm'), purpose, quantity_estimate, confidence (confirmed | estimated | inferred).",
-      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nSupplier evidence:\n${evidenceBlock(data.supplier_evidence)}${correctionsBlock(data.corrections, "materials")}`,
+      sysHeader +
+        "You are a lab supply specialist. Generate a practical materials list using the retrieved supplier evidence. For each item include: item_name, supplier, catalog_number (or 'catalog to confirm'), purpose, quantity_estimate, confidence (confirmed | estimated | inferred).",
+      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nSupplier evidence:\n${evidenceBlock(data.supplier_evidence)}${correctionsBlock(data.corrections, "materials")}${memoryBlock(data.memory)}`,
       "materials",
       {
         type: "object",
@@ -685,12 +745,16 @@ export const generateBudget = createServerFn({ method: "POST" })
       materials: Materials;
       budget_cap?: string;
       corrections?: Correction[];
+      memory?: MemoryContext;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const hasReview = (data.corrections?.length ?? 0) > 0;
+    const sysHeader = hasReview ? REGEN_SYSTEM_PREFIX + "\n\n" : "";
     return callAIJson<Budget>(
-      "You are estimating costs for a bioscience experiment. Break costs into materials, consumables, assay kits, cell lines or biological materials, equipment access, and labor. If live prices are unavailable, state a range and mark as estimated. Use EUR (€).",
-      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nMaterials list:\n${JSON.stringify(data.materials, null, 2)}\n\nBudget cap: ${data.budget_cap || "none"}${correctionsBlock(data.corrections, "budget")}`,
+      sysHeader +
+        "You are estimating costs for a bioscience experiment. Break costs into materials, consumables, assay kits, cell lines or biological materials, equipment access, and labor. If live prices are unavailable, state a range and mark as estimated. Use EUR (€).",
+      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nMaterials list:\n${JSON.stringify(data.materials, null, 2)}\n\nBudget cap: ${data.budget_cap || "none"}${correctionsBlock(data.corrections, "budget")}${memoryBlock(data.memory)}`,
       "budget",
       {
         type: "object",
@@ -733,12 +797,16 @@ export const generateTimeline = createServerFn({ method: "POST" })
       protocol: Protocol;
       timeline_target?: string;
       corrections?: Correction[];
+      memory?: MemoryContext;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const hasReview = (data.corrections?.length ?? 0) > 0;
+    const sysHeader = hasReview ? REGEN_SYSTEM_PREFIX + "\n\n" : "";
     return callAIJson<Timeline>(
-      "You are creating an execution timeline for a bioscience experiment. Produce phased breakdown: preparation, setup, experimental run, measurement, analysis, validation reporting. Include duration, dependencies, and bottlenecks.",
-      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nProtocol summary:\n${data.protocol.protocol_steps.map((s) => `${s.step}. ${s.title}`).join("\n")}\n\nTarget timeline: ${data.timeline_target || "none"}${correctionsBlock(data.corrections, "timeline")}`,
+      sysHeader +
+        "You are creating an execution timeline for a bioscience experiment. Produce phased breakdown: preparation, setup, experimental run, measurement, analysis, validation reporting. Include duration, dependencies, and bottlenecks.",
+      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nProtocol summary:\n${data.protocol.protocol_steps.map((s) => `${s.step_number}. ${s.title}`).join("\n")}\n\nTarget timeline: ${data.timeline_target || "none"}${correctionsBlock(data.corrections, "timeline")}${memoryBlock(data.memory)}`,
       "timeline",
       {
         type: "object",
@@ -771,12 +839,16 @@ export const generateValidation = createServerFn({ method: "POST" })
       parsed: ParsedHypothesis;
       validation_evidence: SearchResult[];
       corrections?: Correction[];
+      memory?: MemoryContext;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const hasReview = (data.corrections?.length ?? 0) > 0;
+    const sysHeader = hasReview ? REGEN_SYSTEM_PREFIX + "\n\n" : "";
     return callAIJson<Validation>(
-      "You are designing the validation strategy for this experiment. Define primary endpoint, secondary endpoints, controls, readout methods, success criteria, and failure criteria. Also score the validation strength on a 1-5 integer scale (5 = gold-standard controls + validated assay + clear quantitative endpoint; 3 = reasonable design with some gaps; 1 = insufficient controls or no clear success criterion) and provide a one-sentence rationale.",
-      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nValidation evidence:\n${evidenceBlock(data.validation_evidence)}${correctionsBlock(data.corrections, "validation")}`,
+      sysHeader +
+        "You are designing the validation strategy for this experiment. Define primary endpoint, secondary endpoints, controls, readout methods, success criteria, and failure criteria. Also score the validation strength on a 1-5 integer scale (5 = gold-standard controls + validated assay + clear quantitative endpoint; 3 = reasonable design with some gaps; 1 = insufficient controls or no clear success criterion) and provide a one-sentence rationale.",
+      `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nValidation evidence:\n${evidenceBlock(data.validation_evidence)}${correctionsBlock(data.corrections, "validation")}${memoryBlock(data.memory)}`,
       "validation",
       {
         type: "object",

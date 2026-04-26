@@ -225,20 +225,50 @@ export async function exportToPDF(state: AppState) {
     const proto = state.experiment_plan.protocol;
     autoTable(doc, {
       startY: y,
-      head: [["#", "Title", "Description", "Critical parameters"]],
-      body: proto.protocol_steps.map((s) => [
-        String(s.step),
-        s.title,
-        s.description,
-        s.critical_parameters ?? "—",
-      ]),
+      head: [["#", "Title", "Objective", "Key parameters"]],
+      body: proto.protocol_steps.map((s) => {
+        const params = s.parameters
+          ? Object.entries(s.parameters)
+              .filter(([, v]) => v)
+              .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
+              .join("; ")
+          : "";
+        return [String(s.step_number), s.title, s.objective ?? "—", params || "—"];
+      }),
       theme: "grid",
       headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
       bodyStyles: { fontSize: 9, textColor: TEXT, valign: "top" },
-      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 36 }, 3: { cellWidth: 40 } },
+      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 36 }, 3: { cellWidth: 50 } },
       margin: { left: MARGIN, right: MARGIN },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+    // Detailed recipe block per step
+    for (const s of proto.protocol_steps) {
+      y = ensure(doc, y, 30);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...TEAL);
+      doc.text(`Step ${s.step_number} — ${s.title}`, MARGIN, y);
+      y += 5;
+      body(doc);
+      if (s.actions?.length) {
+        y = ensure(doc, y, 10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Actions:", MARGIN, y);
+        y += 4;
+        doc.setFont("helvetica", "normal");
+        for (let i = 0; i < s.actions.length; i++) {
+          y = ensure(doc, y, 8);
+          y = paragraph(doc, `  ${i + 1}. ${s.actions[i]}`, y);
+        }
+      }
+      if (s.checkpoint) y = paragraph(doc, `Checkpoint: ${s.checkpoint}`, y);
+      if (s.failure_mode) y = paragraph(doc, `Failure mode: ${s.failure_mode}`, y);
+      if (s.troubleshooting) y = paragraph(doc, `Troubleshooting: ${s.troubleshooting}`, y);
+      if (s.safety) y = paragraph(doc, `Safety: ${s.safety}`, y);
+      y += 3;
+    }
 
     if (proto.assumptions.length) {
       y = ensure(doc, y, 20);

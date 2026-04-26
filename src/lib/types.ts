@@ -60,10 +60,34 @@ export type LiteratureQC = {
 };
 
 export type ProtocolStep = {
-  step: number;
+  step_number: number;
   title: string;
-  description: string;
-  critical_parameters?: string;
+  /** Short objective sentence — one-line summary used in Standard view */
+  objective: string;
+  /** Step-specific reagents / consumables / equipment */
+  materials: string[];
+  /** Numbered actions in order */
+  actions: string[];
+  /** Critical parameter dictionary (any subset present) */
+  parameters?: {
+    concentration?: string;
+    volume?: string;
+    temperature?: string;
+    duration?: string;
+    other_conditions?: string;
+  };
+  /** Expected observation / QC checkpoint */
+  checkpoint?: string;
+  /** Most likely failure mode */
+  failure_mode?: string;
+  /** Troubleshooting note */
+  troubleshooting?: string;
+  /** Safety / handling note */
+  safety?: string;
+  /** Evidence-grounding confidence */
+  confidence?: "high" | "medium" | "low";
+  /** Optional source links from retrieved evidence */
+  source_links?: string[];
 };
 
 export type Protocol = {
