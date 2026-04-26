@@ -26,6 +26,12 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { FlowchartPanel } from "@/components/app/FlowchartPanel";
 
+/** Remove a leading numeric enumeration like "1. ", "2) ", "03 - ", or "1.1 " from a string. */
+function stripLeadingNumber(text: string): string {
+  if (!text) return text;
+  return text.replace(/^\s*\d+(?:\.\d+)?[.\)\-:]?\s+/, "");
+}
+
 function inferSupplierTag(supplier: string): SourceTag {
   const s = supplier.toLowerCase();
   if (s.includes("addgene")) return "Addgene";
