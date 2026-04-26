@@ -13,7 +13,7 @@ function inferSourceFromSupplier(supplier: string): string {
   return "Other";
 }
 
-function findSupplierUrl(supplier: string, item: string, sources: SearchResult[]): string {
+export function findSupplierUrl(supplier: string, item: string, sources: SearchResult[]): string {
   const s = (supplier || "").toLowerCase();
   const i = (item || "").toLowerCase().split(" ").filter((w) => w.length > 3);
   const match = sources.find((r) => {
