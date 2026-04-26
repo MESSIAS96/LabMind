@@ -42,7 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
+import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 
 export const Route = createFileRoute("/review")({
@@ -205,10 +205,11 @@ function ReviewScreen() {
     (c) => c.rating > 0 || c.issue_tags.length || c.notes.trim(),
   );
 
-  const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(s);
+      else if (kind === "recipe") await exportProtocolRecipePDF(s);
       else if (kind === "xlsx") exportToXLSX(s);
       else if (kind === "gantt-png") await exportGanttPNG();
       else if (kind === "gantt-pdf") await exportGanttPDF();
@@ -342,6 +343,9 @@ function ReviewScreen() {
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("pdf"); }}>
                   <FileText className="mr-2 h-4 w-4 text-primary" /> Full Report PDF
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("recipe"); }}>
+                  <FileText className="mr-2 h-4 w-4 text-primary" /> Detailed Protocol Recipe PDF
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("xlsx"); }}>
                   <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" /> Supplier & Budget XLSX
                 </DropdownMenuItem>
@@ -428,7 +432,17 @@ function ReviewScreen() {
           <Button
             variant="outline"
             onClick={() => {
-              toast.success("Plan approved");
+              try {
+                savePlanToMemory({
+                  state: s,
+                  finalPlan: s.review.regenerated_plan ?? s.experiment_plan,
+                  approved: true,
+                  revision_count: s.review.regenerated_plan ? 2 : 1,
+                });
+              } catch (err) {
+                console.warn("memory save failed", err);
+              }
+              toast.success("Plan approved · saved to learning memory");
               navigate({ to: "/plan" });
             }}
           >
