@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/app/Stepper";
 import { NavArrows } from "@/components/app/NavArrows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useApp } from "@/lib/store";
 import { ArrowRight } from "lucide-react";
@@ -15,15 +16,16 @@ export const Route = createFileRoute("/parsed")({
   component: ParsedScreen,
 });
 
-const FIELDS: { key: keyof ParsedHypothesis; label: string }[] = [
-  { key: "intervention", label: "Intervention" },
-  { key: "model_system", label: "Model system" },
-  { key: "primary_endpoint", label: "Primary endpoint" },
-  { key: "threshold", label: "Threshold" },
-  { key: "mechanism", label: "Mechanism" },
-  { key: "control_condition", label: "Control condition" },
-  { key: "duration", label: "Duration" },
-  { key: "assay_method", label: "Assay method" },
+type FieldDef = { key: keyof ParsedHypothesis; label: string; multiline: boolean };
+const FIELDS: FieldDef[] = [
+  { key: "intervention", label: "Intervention", multiline: true },
+  { key: "model_system", label: "Model system", multiline: true },
+  { key: "primary_endpoint", label: "Primary endpoint", multiline: true },
+  { key: "threshold", label: "Threshold", multiline: false },
+  { key: "mechanism", label: "Mechanism", multiline: true },
+  { key: "control_condition", label: "Control condition", multiline: true },
+  { key: "duration", label: "Duration", multiline: true },
+  { key: "assay_method", label: "Assay method", multiline: true },
 ];
 
 function ParsedScreen() {
@@ -65,11 +67,20 @@ function ParsedScreen() {
           {FIELDS.map((f) => (
             <div key={f.key}>
               <Label className="text-xs">{f.label}</Label>
-              <Input
-                className="mt-1"
-                value={p[f.key]}
-                onChange={(e) => update(f.key, e.target.value)}
-              />
+              {f.multiline ? (
+                <Textarea
+                  className="mt-1 min-h-12 resize-y"
+                  rows={2}
+                  value={(p[f.key] as string) ?? ""}
+                  onChange={(e) => update(f.key, e.target.value)}
+                />
+              ) : (
+                <Input
+                  className="mt-1"
+                  value={(p[f.key] as string) ?? ""}
+                  onChange={(e) => update(f.key, e.target.value)}
+                />
+              )}
             </div>
           ))}
         </div>
