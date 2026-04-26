@@ -21,7 +21,7 @@ const FIELDS: FieldDef[] = [
   { key: "intervention", label: "Intervention", multiline: true },
   { key: "model_system", label: "Model system", multiline: true },
   { key: "primary_endpoint", label: "Primary endpoint", multiline: true },
-  { key: "threshold", label: "Threshold", multiline: false },
+  { key: "threshold", label: "Threshold", multiline: true },
   { key: "mechanism", label: "Mechanism", multiline: true },
   { key: "control_condition", label: "Control condition", multiline: true },
   { key: "duration", label: "Duration", multiline: true },
