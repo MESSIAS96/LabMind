@@ -21,6 +21,8 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { runDevilsAdvocate } from "@/server/ai.functions";
 import { toast } from "sonner";
+import { getRelevantMemory } from "@/lib/memoryBank";
+import { LearningPanel } from "@/components/app/LearningPanel";
 
 export const Route = createFileRoute("/plan")({
   head: () => ({ meta: [{ title: "Experiment plan — AI Scientist" }] }),
@@ -87,6 +89,7 @@ function PlanScreen() {
   }
 
   const title = `${p.intervention} → ${p.primary_endpoint} in ${p.model_system}`;
+  const memory = getRelevantMemory(p, s.experiment_type);
 
   return (
     <div className="min-h-screen">
@@ -169,6 +172,10 @@ function PlanScreen() {
             loading={daLoading}
             onRun={runDA}
           />
+        </div>
+
+        <div className="mt-4">
+          <LearningPanel memory={memory} />
         </div>
 
         <div className="mt-8">

@@ -39,6 +39,8 @@ import { downloadPlanText } from "@/lib/exportPlan";
 import { exportToPDF, exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import { toast } from "sonner";
+import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
+import { LearningPanel } from "@/components/app/LearningPanel";
 
 export const Route = createFileRoute("/compare")({
   head: () => ({ meta: [{ title: "Improved plan — LabMind" }] }),
@@ -85,6 +87,7 @@ function ImprovedPlanScreen() {
   // Build a state-like object whose experiment_plan is the regenerated one,
   // so existing exports operate on the improved plan.
   const improvedState = { ...s, experiment_plan: regen };
+  const memory = p ? getRelevantMemory(p, s.experiment_type) : { similar_plans: [], relevant_corrections: [], learned_patterns: [] };
 
   const runExport = async (kind: "pdf" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
     setExporting(true);
@@ -189,6 +192,10 @@ function ImprovedPlanScreen() {
 
         <div className="mt-8">
           <ImprovedPlanView changed={changed} regen={regen} retrieval={s.retrieval_results} />
+        </div>
+
+        <div className="mt-4">
+          <LearningPanel memory={memory} />
         </div>
       </main>
       <AppFooter />
