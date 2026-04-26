@@ -265,7 +265,7 @@ async function addFlowchartPage(doc: jsPDF, state: AppState) {
     doc.setTextColor(...MUTED);
     doc.setFontSize(10);
     doc.text("Visual sequence of the main protocol stages.", MARGIN, y);
-    y += 8;
+    y += 12; // Pass 12 — 12mm gap after subtitle before flowchart image
     doc.setTextColor(...TEXT);
 
     const maxW = Math.min(CONTENT_W, 170);
