@@ -663,34 +663,23 @@ export async function exportToPDF(state: AppState) {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...TEAL);
     doc.text(label, MARGIN, y);
-    y += 5;
+    y += PDF_LAYOUT.headerGap + PDF_LAYOUT.lineHeight;
     doc.setTextColor(...TEXT);
     doc.setFont("helvetica", "normal");
     if (!items.length) {
       doc.setTextColor(...MUTED);
       doc.text("(none)", MARGIN, y);
-      y += 5;
+      y += PDF_LAYOUT.lineHeight + PDF_LAYOUT.paragraphGap;
       continue;
     }
     for (const r of items) {
-      y = ensure(doc, y, 16);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...TEXT);
-      const t = doc.splitTextToSize(r.title || r.url, CONTENT_W) as string[];
-      doc.text(t, MARGIN, y);
-      y += t.length * 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(...MUTED);
-      doc.text(r.source ?? "", MARGIN, y);
-      doc.setTextColor(...TEXT);
-      doc.setFontSize(10);
-      y += 5;
-      y = drawUrlLine(doc, r.url, y);
-      y += 2;
+      y = addReferenceBlock(
+        doc,
+        { title: r.title || r.url, source: r.source as string | undefined, url: r.url },
+        y,
+      );
     }
-    y += 4;
+    y += PDF_LAYOUT.sectionGap;
   }
 
   // ── Last page footer ──────────────────────────────────
