@@ -480,6 +480,9 @@ export async function exportToPDF(state: AppState) {
     });
   }
 
+  // ── Flowchart page (Pass 11 Part D) ───────────────────
+  await addFlowchartPage(doc, state);
+
   // ── PAGE 9 — Sources ──────────────────────────────────
   doc.addPage();
   y = MARGIN;
