@@ -72,10 +72,18 @@ export function FlowchartPanel({
         <p className="mt-0.5 text-sm text-muted-foreground">
           Visual sequence of the main protocol stages.
         </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Generated directly from the current protocol steps.
+        </p>
       </div>
       <div className="rounded-xl border bg-white p-6 dark:bg-white">
         {error ? (
-          <div className="text-sm text-destructive">{error}</div>
+          <div className="space-y-1 text-sm">
+            <div className="text-destructive">{error}</div>
+            <div className="text-muted-foreground">
+              Flowchart could not be mapped perfectly from protocol. Review protocol steps manually.
+            </div>
+          </div>
         ) : (
           <div ref={containerRef} className="mermaid-host overflow-x-auto [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full" />
         )}
