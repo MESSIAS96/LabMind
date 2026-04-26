@@ -2,6 +2,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { AppState } from "./types";
 import { captureElement } from "./exportCanvas";
+import { generateMermaidFlowchart } from "./flowchart";
+import mermaid from "mermaid";
 
 const TEAL: [number, number, number] = [1, 105, 111];
 const TEAL_LIGHT: [number, number, number] = [212, 233, 233];
@@ -15,6 +17,16 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 const MARGIN = 20;
 const CONTENT_W = PAGE_W - MARGIN * 2;
+const LINE_HEIGHT = 5; // mm — Pass 11 spacing
+const PARAGRAPH_GAP = 2; // mm extra between paragraphs
+const SECTION_GAP_AFTER = 6; // mm after a section block
+const TABLE_GAP = 6; // mm after a table
+
+/** Pass 11 — strip a leading "1. " / "2) " / "1.1 " enumeration from a step's title text. */
+function stripLeadingNumber(text: string): string {
+  if (!text) return text;
+  return text.replace(/^\s*\d+(?:\.\d+)?[.\)\-:]?\s+/, "");
+}
 
 function setHeader(doc: jsPDF, text: string, y: number) {
   doc.setFont("helvetica", "bold");
@@ -24,7 +36,7 @@ function setHeader(doc: jsPDF, text: string, y: number) {
   doc.setDrawColor(...TEAL);
   doc.setLineWidth(0.4);
   doc.line(MARGIN, y + 1.5, MARGIN + 40, y + 1.5);
-  return y + 8;
+  return y + 10; // Pass 11 — more breathing room after section header
 }
 
 function body(doc: jsPDF) {
@@ -37,7 +49,7 @@ function paragraph(doc: jsPDF, text: string, y: number, maxWidth = CONTENT_W): n
   body(doc);
   const lines = doc.splitTextToSize(text || "—", maxWidth) as string[];
   doc.text(lines, MARGIN, y);
-  return y + lines.length * 4.6 + 2;
+  return y + lines.length * LINE_HEIGHT + PARAGRAPH_GAP;
 }
 
 function ensure(doc: jsPDF, y: number, needed = 30): number {
