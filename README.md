@@ -256,6 +256,4 @@ For substantial changes, please open an issue first to discuss direction and sco
 
 ## License
 
-Specify your license here; for example:
-
 This project is licensed under the **MIT License** – see the [`LICENSE`](LICENSE) file for details.
