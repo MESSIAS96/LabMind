@@ -8,9 +8,9 @@ import { useApp } from "@/lib/store";
 import { PlanTabs } from "@/components/app/PlanTabs";
 import { NoveltyBadge } from "@/components/app/NoveltyBadge";
 import { DevilsAdvocatePanel, ConfidenceStars } from "@/components/app/DevilsAdvocate";
-import { Download, MessageSquare, FileText, FileSpreadsheet, ChevronDown, Loader2, Image as ImageIcon, FileType, CheckCircle2 } from "lucide-react";
+import { Download, MessageSquare, FileText, FileSpreadsheet, ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
+import { exportToPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import {
   DropdownMenu,
@@ -57,14 +57,12 @@ function PlanScreen() {
     }
   };
 
-  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(s);
       else if (kind === "recipe") await exportProtocolRecipePDF(s);
       else if (kind === "xlsx") exportToXLSX(s);
-      else if (kind === "gantt-png") await exportGanttPNG();
-      else if (kind === "gantt-pdf") await exportGanttPDF();
       else downloadPlanText(s);
       toast.success("Downloaded successfully");
     } catch (e) {
@@ -146,18 +144,6 @@ function PlanScreen() {
                   label="Supplier & Budget XLSX"
                   sub="Materials, costs, links, checklist"
                   onSelect={() => runExport("xlsx")}
-                />
-                <ExportRow
-                  icon={<ImageIcon className="h-4 w-4 text-primary" />}
-                  label="Gantt Chart PNG"
-                  sub="Timeline as image"
-                  onSelect={() => runExport("gantt-png")}
-                />
-                <ExportRow
-                  icon={<FileType className="h-4 w-4 text-primary" />}
-                  label="Gantt Chart PDF"
-                  sub="Timeline, landscape A4"
-                  onSelect={() => runExport("gantt-pdf")}
                 />
                 <ExportRow
                   icon={<FileText className="h-4 w-4 text-muted-foreground" />}

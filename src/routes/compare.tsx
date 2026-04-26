@@ -29,14 +29,12 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
-  Image as ImageIcon,
-  FileType,
   ChevronDown,
   Loader2,
 } from "lucide-react";
 import { changedSections, downloadChangeLog, PLAN_SECTIONS } from "@/lib/diffPlan";
 import { downloadPlanText } from "@/lib/exportPlan";
-import { exportToPDF, exportGanttPNG, exportGanttPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
+import { exportToPDF, exportProtocolRecipePDF } from "@/lib/exportPdf";
 import { exportToXLSX } from "@/lib/exportXlsx";
 import { toast } from "sonner";
 import { getRelevantMemory, savePlanToMemory } from "@/lib/memoryBank";
@@ -89,14 +87,12 @@ function ImprovedPlanScreen() {
   const improvedState = { ...s, experiment_plan: regen };
   const memory = p ? getRelevantMemory(p, s.experiment_type) : { similar_plans: [], relevant_corrections: [], learned_patterns: [] };
 
-  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "gantt-png" | "gantt-pdf" | "txt") => {
+  const runExport = async (kind: "pdf" | "recipe" | "xlsx" | "txt") => {
     setExporting(true);
     try {
       if (kind === "pdf") await exportToPDF(improvedState);
       else if (kind === "recipe") await exportProtocolRecipePDF(improvedState);
       else if (kind === "xlsx") exportToXLSX(improvedState);
-      else if (kind === "gantt-png") await exportGanttPNG();
-      else if (kind === "gantt-pdf") await exportGanttPDF();
       else downloadPlanText(improvedState);
       toast.success("Downloaded successfully");
     } catch (e) {
@@ -169,12 +165,6 @@ function ImprovedPlanScreen() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("xlsx"); }}>
                   <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" /> Supplier & Budget XLSX
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-png"); }}>
-                  <ImageIcon className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PNG
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("gantt-pdf"); }}>
-                  <FileType className="mr-2 h-4 w-4 text-primary" /> Gantt Chart PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); runExport("txt"); }}>
                   <FileText className="mr-2 h-4 w-4 text-muted-foreground" /> Plan Summary TXT
@@ -329,7 +319,7 @@ function ImprovedPlanView({
             : "rounded-xl border bg-card p-4"
         }
       >
-        <PlanTabs plan={regen} retrieval={retrieval} />
+        <PlanTabs plan={regen} retrieval={retrieval} enhanced version={2} />
       </div>
     </div>
   );

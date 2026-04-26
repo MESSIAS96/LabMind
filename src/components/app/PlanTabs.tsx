@@ -24,6 +24,7 @@ import { Download, FileImage, Copy } from "lucide-react";
 import { exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
 import { toast } from "sonner";
 import { useState } from "react";
+import { FlowchartPanel } from "@/components/app/FlowchartPanel";
 
 function inferSupplierTag(supplier: string): SourceTag {
   const s = supplier.toLowerCase();
@@ -64,15 +65,20 @@ const STEP_CONFIDENCE_STYLE: Record<string, string> = {
 export function PlanTabs({
   plan,
   retrieval,
+  enhanced,
+  version,
 }: {
   plan: ExperimentPlan;
   retrieval: RetrievalResults;
+  enhanced?: boolean;
+  version?: number;
 }) {
   const [recipeView, setRecipeView] = useState<"detailed" | "standard">("detailed");
   return (
     <Tabs defaultValue="protocol" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+      <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7">
         <TabsTrigger value="protocol">Protocol</TabsTrigger>
+        <TabsTrigger value="flowchart">Flowchart</TabsTrigger>
         <TabsTrigger value="materials">Materials</TabsTrigger>
         <TabsTrigger value="budget">Budget</TabsTrigger>
         <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -85,6 +91,11 @@ export function PlanTabs({
           <Empty label="Protocol not generated yet." />
         ) : (
           <div className="space-y-6">
+            {enhanced && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-primary">
+                Enhanced using learned patterns
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Protocol depth: {recipeView === "detailed" ? "Detailed Scientific Recipe Mode" : "Standard"}
@@ -155,6 +166,14 @@ export function PlanTabs({
             )}
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="flowchart" className="mt-6">
+        <FlowchartPanel
+          protocol={plan.protocol}
+          validation={plan.validation}
+          version={version ?? 1}
+        />
       </TabsContent>
 
       <TabsContent value="materials" className="mt-6">
