@@ -1,6 +1,6 @@
 # LabMind – AI-Assisted Experiment Planning for Scientists
 
-LabMind is a web application that turns free‑text scientific ideas into **lab‑ready experiment plans** in minutes. It combines literature quality control, detailed protocol generation, materials and budget planning, and timeline visualization into a single end‑to‑end workflow for researchers and lab teams. [web:158][web:155]
+LabMind is a web application that turns free‑text scientific ideas into **lab‑ready experiment plans** in minutes. It combines literature quality control, detailed protocol generation, materials and budget planning, and timeline visualization into a single end‑to‑end workflow for researchers and lab teams.
 
 > From hypothesis to protocol, suppliers, budget, timeline, and exportable documentation — all in one place.
 
@@ -25,7 +25,7 @@ LabMind is a web application that turns free‑text scientific ideas into **lab�
 
 ## Overview
 
-LabMind was built as a hackathon project to explore how **LLMs and retrieval** can support scientists in designing better experiments faster, while still aligning with good protocol-writing practice and research standards. [web:135][web:141]
+LabMind was built as a hackathon project to explore how **LLMs and retrieval** can support scientists in designing better experiments faster, while still aligning with good protocol-writing practice and research standards. 
 
 The app:
 
@@ -36,7 +36,7 @@ The app:
 - proposes materials, suppliers, and a Euro-based budget,  
 - builds a timeline and **visual flowchart** of the experiment,  
 - exports a complete **multi-page PDF report** and **XLSX supplier/budget sheet**,  
-- and supports a **devil’s-advocate review and scientist review loop** that improves the plan and is stored as feedback for future runs. [web:135][web:141][web:158]
+- and supports a **devil’s-advocate review and scientist review loop** that improves the plan and is stored as feedback for future runs.
 
 ---
 
@@ -85,30 +85,30 @@ Enumeration is normalized so each major step has a single, clean step number (no
 ### 5. Timeline and Flowchart
 
 - Timeline of phases (ordering, prep, treatment, incubation, readout, analysis, validation), including simple dependency logic.  
-- **Flowchart tab** with a Mermaid-based visual workflow of the main protocol stages, including optional branches for treatment vs. control, QC checkpoints, and repeat-if-failed loops. [web:137][web:140][web:143]  
+- **Flowchart tab** with a Mermaid-based visual workflow of the main protocol stages, including optional branches for treatment vs. control, QC checkpoints, and repeat-if-failed loops.  
 - Flowchart can be downloaded as SVG and is embedded as a dedicated page in the exported PDF.
 
 ### 6. Devil’s Advocate & Scientist Review
 
-- A **Devil’s Advocate** panel that critiques the plan (risks, assumptions, missing controls, unrealistic budgets, weak validation, etc.) and proposes corrections. [web:158]  
+- A **Devil’s Advocate** panel that critiques the plan (risks, assumptions, missing controls, unrealistic budgets, weak validation, etc.) and proposes corrections.  
 - One-click option to **apply DA findings as corrections** and regenerate an improved plan.  
 - A **Scientist Review** screen where human reviewers can add their own corrections and improvements.  
 - Mixed mode: DA suggestions are pre-filled into the Scientist Review form and can be edited or rejected.
 
 ### 7. Self-Learning from Prior Plans
 
-- LabMind stores high-quality, reviewed plans and their corrections (both DA-based and human-based) in a local memory bank. [web:131][web:130]  
+- LabMind stores high-quality, reviewed plans and their corrections (both DA-based and human-based) in a local memory bank.
 - Before generating a new plan, the app retrieves:
   - similar prior plans,  
   - relevant corrections, and  
   - recurrent “patterns” (e.g., common missing controls, better parameterization).  
-- These are injected into generation prompts as **few-shot examples / learned patterns**, so second and third runs for similar experiments become more realistic and standards-aligned. [web:131][web:130][web:158]
+- These are injected into generation prompts as **few-shot examples / learned patterns**, so second and third runs for similar experiments become more realistic and standards-aligned.
 
 ### 8. Export
 
 - **Full report PDF**:
   - Cover, hypothesis, parsed fields, QC, detailed protocol, materials & supply chain, budget, timeline, flowchart, validation, standards compliance, DA summary, and references.  
-  - Improved line spacing and section spacing for readability; URLs rendered on dedicated lines with clickable links. [web:121]  
+  - Improved line spacing and section spacing for readability; URLs rendered on dedicated lines with clickable links.
 - **XLSX**:
   - Materials & suppliers sheet  
   - Budget sheet with Euro formatting  
@@ -125,10 +125,10 @@ At a high level, LabMind consists of:
 - **Frontend** – single-page app generated with Lovable (TypeScript/JavaScript + a component framework)  
 - **AI / Orchestration**:
   - LLM calls for parsing hypotheses, summarizing QC, generating protocols, DA reviews, and improved plans  
-  - Retrieval calls to literature and protocol/supplier sources via a search layer [web:138][web:158]  
-  - Mermaid for flowcharts, jsPDF for report export, SheetJS for XLSX [web:137][web:140][web:143][web:121][web:104]  
+  - Retrieval calls to literature and protocol/supplier sources via a search layer
+  - Mermaid for flowcharts, jsPDF for report export, SheetJS for XLSX 
 - **Self-learning Memory**:
-  - In-browser storage of prior plans, corrections, and patterns, used as few-shot context for future runs [web:131][web:130]
+  - In-browser storage of prior plans, corrections, and patterns, used as few-shot context for future runs
 
 Check the `src/` directory for the current component and service layout.
 
@@ -140,7 +140,7 @@ Check the `src/` directory for the current component and service layout.
 
 1. Enter a hypothesis or choose an example on the landing page.  
 2. LabMind parses and displays the structured hypothesis; user can edit all parsed fields.  
-3. Literature QC runs and returns novelty signal + key references + “Why this matches” explanations. [web:158]  
+3. Literature QC runs and returns novelty signal + key references + “Why this matches” explanations. 
 4. LabMind generates an initial plan: protocol, materials, budget, timeline, validation, and flowchart.
 
 ### 2. Review and Improvement
@@ -152,14 +152,14 @@ Check the `src/` directory for the current component and service layout.
 3. The app regenerates an improved plan using:
    - the current plan,  
    - corrections, and  
-   - relevant prior plans and patterns from memory. [web:131][web:130]  
+   - relevant prior plans and patterns from memory.  
 4. The improved plan becomes the default view; earlier versions remain accessible via revision history.
 
 ### 3. Export and Handoff
 
 1. Generate the **Full Report PDF** for documentation or review.  
 2. Export **XLSX** for procurement and budget tracking.  
-3. Download the **flowchart SVG** for presentations, slides, or lab wikis. [web:137][web:140][web:143]
+3. Download the **flowchart SVG** for presentations, slides, or lab wikis.
 
 ---
 
@@ -170,12 +170,12 @@ Adjust if needed to reflect the actual code:
 - **Language**: TypeScript / JavaScript  
 - **Framework**: Lovable-generated SPA (likely React / Vite under the hood)  
 - **Styling**: CSS with design tokens, light/dark mode  
-- **Diagrams**: Mermaid (flowcharts) [web:137][web:140][web:143]  
-- **PDF Export**: jsPDF + AutoTable [web:121]  
-- **Spreadsheet Export**: SheetJS (XLSX) [web:104]  
+- **Diagrams**: Mermaid (flowcharts) 
+- **PDF Export**: jsPDF + AutoTable 
+- **Spreadsheet Export**: SheetJS (XLSX)   
 - **AI / Retrieval**:
   - Large language model API for parsing, planning, review  
-  - Retrieval/search for PubMed, Semantic Scholar, protocols.io, and supplier/protocol sources [web:138][web:158]
+  - Retrieval/search for PubMed, Semantic Scholar, protocols.io, and supplier/protocol sources 
 
 ---
 
@@ -219,7 +219,7 @@ If the repo includes an `.env.example`, follow that as the authoritative referen
 
 ## Limitations
 
-- LabMind **does not replace** expert scientific judgment; plans should always be reviewed by qualified scientists before execution. [web:155][web:158]  
+- LabMind **does not replace** expert scientific judgment; plans should always be reviewed by qualified scientists before execution.
 - Cost estimates are approximate and must be confirmed with suppliers.  
 - Memory of prior plans is currently local to the running instance/browser and not shared globally unless explicitly configured.  
 - Export layouts are optimized for typical experiment sizes; extremely large protocols or diagrams may require further tuning.
@@ -231,8 +231,8 @@ If the repo includes an `.env.example`, follow that as the authoritative referen
 Planned or potential future enhancements:
 
 - Multi-user / team mode with shared memory and roles (PI, postdoc, PhD, technician).  
-- Integration with electronic lab notebooks (ELN) or LIMS. [web:152]  
-- Richer standards support (e.g., MIQE, ARRIVE, CONSORT extensions). [web:141][web:155]  
+- Integration with electronic lab notebooks (ELN) or LIMS.  
+- Richer standards support (e.g., MIQE, ARRIVE, CONSORT extensions). 
 - More interactive editing of the flowchart and timeline.  
 - Integration of real execution feedback (e.g., outcomes and troubleshooting logs) into the learning loop.
 
