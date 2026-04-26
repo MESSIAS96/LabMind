@@ -402,7 +402,7 @@ function RecipeStepItem({ s }: { s: ProtocolStep }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{s.title}</span>
+              <span className="font-medium">{stripLeadingNumber(s.title)}</span>
               {s.confidence && (
                 <span
                   className={cn(
@@ -414,14 +414,14 @@ function RecipeStepItem({ s }: { s: ProtocolStep }) {
                 </span>
               )}
             </div>
-            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{s.objective}</p>
+            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{stripLeadingNumber(s.objective)}</p>
           </div>
         </div>
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-3 pl-9 text-sm">
           {s.objective && (
-            <RecipeBlock label="Objective">{s.objective}</RecipeBlock>
+            <RecipeBlock label="Objective">{stripLeadingNumber(s.objective)}</RecipeBlock>
           )}
           {s.materials?.length > 0 && (
             <RecipeBlock label="Materials for this step">
@@ -436,7 +436,7 @@ function RecipeStepItem({ s }: { s: ProtocolStep }) {
             <RecipeBlock label="Actions">
               <ol className="list-decimal space-y-1 pl-5">
                 {s.actions.map((a, i) => (
-                  <li key={i}>{a}</li>
+                  <li key={i}>{stripLeadingNumber(a)}</li>
                 ))}
               </ol>
             </RecipeBlock>
