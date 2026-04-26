@@ -50,6 +50,8 @@ export type Reference = {
   source: string;
   url: string;
   relevance: string;
+  /** Short 1-2 sentence explanation of why this reference matches the hypothesis (top refs only). */
+  why_match?: string;
 };
 
 export type NoveltySignal = "not_found" | "similar_work_exists" | "exact_match_found";

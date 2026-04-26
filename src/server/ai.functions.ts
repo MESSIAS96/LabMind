@@ -542,7 +542,7 @@ export const classifyNovelty = createServerFn({ method: "POST" })
       novelty_signal: NoveltySignal;
       references: Reference[];
     }>(
-      "You are a literature analyst. Classify whether the proposed experiment is novel, similar to prior work, or an exact match. Cite 1-3 most relevant references from the evidence list.",
+      "You are a literature analyst. Classify whether the proposed experiment is novel, similar to prior work, or an exact match. Cite up to 5 most relevant references from the evidence list, ordered by relevance. For the TOP 3 most relevant references, also include a short `why_match` field (1-2 concise sentences) explaining how that reference relates to the hypothesis — connect intervention, model system, readout/assay, or mechanism. For references ranked 4+, omit `why_match`.",
       `Hypothesis fields:\n${JSON.stringify(data.parsed, null, 2)}\n\nEvidence:\n${evidence || "No evidence retrieved."}`,
       "novelty_assessment",
       {
@@ -561,6 +561,7 @@ export const classifyNovelty = createServerFn({ method: "POST" })
                 source: { type: "string" },
                 url: { type: "string" },
                 relevance: { type: "string" },
+                why_match: { type: "string" },
               },
               required: ["title", "source", "url", "relevance"],
             },

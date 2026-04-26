@@ -2,6 +2,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { AppState } from "./types";
 import { captureElement } from "./exportCanvas";
+import { generateMermaidFlowchart } from "./flowchart";
+import mermaid from "mermaid";
 
 const TEAL: [number, number, number] = [1, 105, 111];
 const TEAL_LIGHT: [number, number, number] = [212, 233, 233];
@@ -15,6 +17,16 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 const MARGIN = 20;
 const CONTENT_W = PAGE_W - MARGIN * 2;
+const LINE_HEIGHT = 5; // mm — Pass 11 spacing
+const PARAGRAPH_GAP = 2; // mm extra between paragraphs
+const SECTION_GAP_AFTER = 6; // mm after a section block
+const TABLE_GAP = 6; // mm after a table
+
+/** Pass 11 — strip a leading "1. " / "2) " / "1.1 " enumeration from a step's title text. */
+function stripLeadingNumber(text: string): string {
+  if (!text) return text;
+  return text.replace(/^\s*\d+(?:\.\d+)?[.\)\-:]?\s+/, "");
+}
 
 function setHeader(doc: jsPDF, text: string, y: number) {
   doc.setFont("helvetica", "bold");
@@ -24,7 +36,7 @@ function setHeader(doc: jsPDF, text: string, y: number) {
   doc.setDrawColor(...TEAL);
   doc.setLineWidth(0.4);
   doc.line(MARGIN, y + 1.5, MARGIN + 40, y + 1.5);
-  return y + 8;
+  return y + 10; // Pass 11 — more breathing room after section header
 }
 
 function body(doc: jsPDF) {
@@ -37,7 +49,7 @@ function paragraph(doc: jsPDF, text: string, y: number, maxWidth = CONTENT_W): n
   body(doc);
   const lines = doc.splitTextToSize(text || "—", maxWidth) as string[];
   doc.text(lines, MARGIN, y);
-  return y + lines.length * 4.6 + 2;
+  return y + lines.length * LINE_HEIGHT + PARAGRAPH_GAP;
 }
 
 function ensure(doc: jsPDF, y: number, needed = 30): number {
@@ -101,6 +113,103 @@ function noveltyColor(signal?: string): [number, number, number] {
   if (signal === "similar_work_exists") return [240, 220, 175];
   if (signal === "exact_match_found") return [230, 195, 200];
   return [220, 220, 220];
+}
+
+let _mermaidReady = false;
+function ensureMermaidReady() {
+  if (_mermaidReady) return;
+  try {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "neutral",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+    });
+  } catch {
+    /* already initialized */
+  }
+  _mermaidReady = true;
+}
+
+/** Render a Mermaid SVG string to a PNG dataURL via a Canvas. */
+async function mermaidSvgToPng(svgMarkup: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // upscale for crisp output
+          const scale = 2;
+          const w = (img.naturalWidth || 800) * scale;
+          const h = (img.naturalHeight || 600) * scale;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            resolve(null);
+            return;
+          }
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/png");
+          URL.revokeObjectURL(url);
+          resolve({ dataUrl, width: w, height: h });
+        } catch {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function addFlowchartPage(doc: jsPDF, state: AppState) {
+  const proto = state.experiment_plan.protocol;
+  if (!proto || !proto.protocol_steps?.length) return;
+  try {
+    ensureMermaidReady();
+    const def = generateMermaidFlowchart(proto, state.experiment_plan.validation);
+    const id = `pdfflow_${Date.now()}`;
+    const { svg } = await mermaid.render(id, def);
+    const png = await mermaidSvgToPng(svg);
+    if (!png) return;
+
+    doc.addPage();
+    let y = MARGIN;
+    y = setHeader(doc, "Experimental Flowchart", y);
+    body(doc);
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(10);
+    doc.text("Visual sequence of the main protocol stages.", MARGIN, y);
+    y += 8;
+    doc.setTextColor(...TEXT);
+
+    const maxW = Math.min(CONTENT_W, 170);
+    const ratio = png.height / png.width;
+    let drawW = maxW;
+    let drawH = drawW * ratio;
+    const availableH = PAGE_H - y - MARGIN - 10;
+    if (drawH > availableH) {
+      drawH = availableH;
+      drawW = drawH / ratio;
+    }
+    const x = (PAGE_W - drawW) / 2;
+    doc.addImage(png.dataUrl, "PNG", x, y, drawW, drawH);
+  } catch (e) {
+    console.warn("Flowchart PDF embed failed:", e);
+  }
 }
 
 function confidenceColor(c: string): [number, number, number] {
@@ -245,7 +354,12 @@ export async function exportToPDF(state: AppState) {
               .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
               .join("; ")
           : "";
-        return [String(s.step_number), s.title, s.objective ?? "—", params || "—"];
+        return [
+          String(s.step_number),
+          stripLeadingNumber(s.title),
+          stripLeadingNumber(s.objective ?? "—"),
+          params || "—",
+        ];
       }),
       theme: "grid",
       headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
@@ -463,6 +577,9 @@ export async function exportToPDF(state: AppState) {
     });
   }
 
+  // ── Flowchart page (Pass 11 Part D) ───────────────────
+  await addFlowchartPage(doc, state);
+
   // ── PAGE 9 — Sources ──────────────────────────────────
   doc.addPage();
   y = MARGIN;
@@ -626,7 +743,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
     doc.setFontSize(11);
     doc.setTextColor(...TEAL);
     const conf = s.confidence ? `  [${s.confidence.toUpperCase()}]` : "";
-    doc.text(`Step ${s.step_number} — ${s.title}${conf}`, MARGIN + 2, y);
+    doc.text(`Step ${s.step_number} — ${stripLeadingNumber(s.title)}${conf}`, MARGIN + 2, y);
     y += 6;
 
     body(doc);
@@ -635,7 +752,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
       doc.text("Objective:", MARGIN, y);
       y += 4;
       doc.setFont("helvetica", "normal");
-      y = paragraph(doc, s.objective, y);
+      y = paragraph(doc, stripLeadingNumber(s.objective), y);
     }
 
     if (s.materials?.length) {
@@ -658,7 +775,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
       doc.setFont("helvetica", "normal");
       for (let i = 0; i < s.actions.length; i++) {
         y = ensure(doc, y, 8);
-        y = paragraph(doc, `  ${i + 1}. ${s.actions[i]}`, y);
+        y = paragraph(doc, `  ${i + 1}. ${stripLeadingNumber(s.actions[i])}`, y);
       }
     }
 

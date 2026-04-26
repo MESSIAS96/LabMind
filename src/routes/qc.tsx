@@ -285,24 +285,37 @@ function QCScreen() {
                 No references returned.
               </div>
             )}
-            {qc.references.map((r, i) => (
-              <a
-                key={i}
-                href={r.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/60"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium leading-snug">{r.title}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{r.source}</div>
-                    <p className="mt-2 text-sm text-muted-foreground">{r.relevance}</p>
+            {qc.references.map((r, i) => {
+              const isTop = i < 3;
+              return (
+                <a
+                  key={i}
+                  href={r.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium leading-snug">{r.title}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{r.source}</div>
+                      <p className="mt-2 text-sm text-muted-foreground">{r.relevance}</p>
+                      {isTop && r.why_match && (
+                        <div className="mt-3 border-l-2 border-primary/40 pl-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Why this matches
+                          </div>
+                          <p className="mt-0.5 text-xs italic text-muted-foreground">
+                            {r.why_match}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
                   </div>
-                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                </div>
-              </a>
-            ))}
+                </a>
+              );
+            })}
           </div>
         </section>
 
