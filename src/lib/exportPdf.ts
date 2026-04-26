@@ -257,7 +257,12 @@ export async function exportToPDF(state: AppState) {
               .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
               .join("; ")
           : "";
-        return [String(s.step_number), s.title, s.objective ?? "—", params || "—"];
+        return [
+          String(s.step_number),
+          stripLeadingNumber(s.title),
+          stripLeadingNumber(s.objective ?? "—"),
+          params || "—",
+        ];
       }),
       theme: "grid",
       headStyles: { fillColor: TEAL, textColor: 255, fontSize: 9 },
@@ -638,7 +643,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
     doc.setFontSize(11);
     doc.setTextColor(...TEAL);
     const conf = s.confidence ? `  [${s.confidence.toUpperCase()}]` : "";
-    doc.text(`Step ${s.step_number} — ${s.title}${conf}`, MARGIN + 2, y);
+    doc.text(`Step ${s.step_number} — ${stripLeadingNumber(s.title)}${conf}`, MARGIN + 2, y);
     y += 6;
 
     body(doc);
@@ -647,7 +652,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
       doc.text("Objective:", MARGIN, y);
       y += 4;
       doc.setFont("helvetica", "normal");
-      y = paragraph(doc, s.objective, y);
+      y = paragraph(doc, stripLeadingNumber(s.objective), y);
     }
 
     if (s.materials?.length) {
@@ -670,7 +675,7 @@ export async function exportProtocolRecipePDF(state: AppState) {
       doc.setFont("helvetica", "normal");
       for (let i = 0; i < s.actions.length; i++) {
         y = ensure(doc, y, 8);
-        y = paragraph(doc, `  ${i + 1}. ${s.actions[i]}`, y);
+        y = paragraph(doc, `  ${i + 1}. ${stripLeadingNumber(s.actions[i])}`, y);
       }
     }
 
