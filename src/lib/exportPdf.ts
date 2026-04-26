@@ -22,6 +22,78 @@ const PARAGRAPH_GAP = 2; // mm extra between paragraphs
 const SECTION_GAP_AFTER = 6; // mm after a section block
 const TABLE_GAP = 6; // mm after a table
 
+// Pass 12 — shared layout configuration for references / URLs.
+const PDF_LAYOUT = {
+  marginTop: MARGIN,
+  marginBottom: MARGIN,
+  marginLeft: MARGIN,
+  marginRight: MARGIN,
+  sectionGap: 8,
+  headerGap: 4,
+  paragraphGap: 3,
+  lineHeight: 5,
+  referenceGap: 6,
+  urlGapBefore: 2,
+  urlGapAfter: 3,
+};
+
+/**
+ * Render a single reference block (title / metadata / URL on its own line)
+ * with consistent spacing. Returns the new y position after the block.
+ */
+function addReferenceBlock(
+  doc: jsPDF,
+  ref: { title?: string; source?: string; url?: string; authors?: string; year?: string | number },
+  y: number,
+  contentWidth = CONTENT_W,
+): number {
+  // Estimate required height; if too tight, push to next page so URLs never
+  // get squeezed at the bottom.
+  const titleEstimate = doc.splitTextToSize(ref.title || "Untitled reference", contentWidth) as string[];
+  const needed =
+    titleEstimate.length * PDF_LAYOUT.lineHeight +
+    (ref.source || ref.authors || ref.year ? PDF_LAYOUT.lineHeight : 0) +
+    (ref.url ? PDF_LAYOUT.lineHeight + PDF_LAYOUT.urlGapBefore + PDF_LAYOUT.urlGapAfter : 0) +
+    PDF_LAYOUT.referenceGap;
+  if (y + needed > PAGE_H - PDF_LAYOUT.marginBottom - 10) {
+    doc.addPage();
+    y = PDF_LAYOUT.marginTop;
+  }
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT);
+  doc.text(titleEstimate, PDF_LAYOUT.marginLeft, y);
+  y += titleEstimate.length * PDF_LAYOUT.lineHeight;
+
+  // Metadata line
+  const meta = [ref.authors, ref.year, ref.source].filter(Boolean).join(" · ");
+  if (meta) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED);
+    const metaLines = doc.splitTextToSize(meta, contentWidth) as string[];
+    doc.text(metaLines, PDF_LAYOUT.marginLeft, y);
+    y += metaLines.length * PDF_LAYOUT.lineHeight;
+  }
+
+  // URL on its own line, indented, teal, clickable
+  if (ref.url) {
+    y += PDF_LAYOUT.urlGapBefore;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...TEAL);
+    doc.textWithLink("→ " + truncateUrl(ref.url), PDF_LAYOUT.marginLeft + 4, y, { url: ref.url });
+    y += PDF_LAYOUT.lineHeight + PDF_LAYOUT.urlGapAfter;
+  }
+
+  // Restore body defaults + add gap before next block
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT);
+  return y + PDF_LAYOUT.referenceGap;
+}
+
 /** Pass 11 — strip a leading "1. " / "2) " / "1.1 " enumeration from a step's title text. */
 function stripLeadingNumber(text: string): string {
   if (!text) return text;
