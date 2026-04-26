@@ -221,7 +221,19 @@ export async function exportToPDF(state: AppState) {
   if (state.experiment_plan.protocol) {
     doc.addPage();
     y = MARGIN;
-    y = setHeader(doc, "Step-by-Step Protocol", y);
+    y = setHeader(doc, "Protocol Overview", y);
+    body(doc);
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(9);
+    doc.text(
+      "High-level summary. For the full bench-ready recipe (materials, actions, parameters, checkpoints, troubleshooting, safety) export the dedicated Detailed Protocol Recipe PDF.",
+      MARGIN,
+      y,
+      { maxWidth: CONTENT_W },
+    );
+    y += 10;
+    doc.setTextColor(...TEXT);
+    doc.setFontSize(10);
     const proto = state.experiment_plan.protocol;
     autoTable(doc, {
       startY: y,
@@ -242,33 +254,6 @@ export async function exportToPDF(state: AppState) {
       margin: { left: MARGIN, right: MARGIN },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-
-    // Detailed recipe block per step
-    for (const s of proto.protocol_steps) {
-      y = ensure(doc, y, 30);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...TEAL);
-      doc.text(`Step ${s.step_number} — ${s.title}`, MARGIN, y);
-      y += 5;
-      body(doc);
-      if (s.actions?.length) {
-        y = ensure(doc, y, 10);
-        doc.setFont("helvetica", "bold");
-        doc.text("Actions:", MARGIN, y);
-        y += 4;
-        doc.setFont("helvetica", "normal");
-        for (let i = 0; i < s.actions.length; i++) {
-          y = ensure(doc, y, 8);
-          y = paragraph(doc, `  ${i + 1}. ${s.actions[i]}`, y);
-        }
-      }
-      if (s.checkpoint) y = paragraph(doc, `Checkpoint: ${s.checkpoint}`, y);
-      if (s.failure_mode) y = paragraph(doc, `Failure mode: ${s.failure_mode}`, y);
-      if (s.troubleshooting) y = paragraph(doc, `Troubleshooting: ${s.troubleshooting}`, y);
-      if (s.safety) y = paragraph(doc, `Safety: ${s.safety}`, y);
-      y += 3;
-    }
 
     if (proto.assumptions.length) {
       y = ensure(doc, y, 20);
