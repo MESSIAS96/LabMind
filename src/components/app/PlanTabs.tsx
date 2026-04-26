@@ -13,16 +13,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import type { ExperimentPlan } from "@/lib/types";
+import type { ExperimentPlan, ProtocolStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { RetrievalResults } from "@/lib/types";
 import { SourceBadge } from "@/components/app/SourceBadge";
 import type { SourceTag } from "@/lib/types";
 import { GanttChart } from "@/components/app/GanttChart";
 import { Button } from "@/components/ui/button";
-import { Download, FileImage } from "lucide-react";
+import { Download, FileImage, Copy } from "lucide-react";
 import { exportGanttPNG, exportGanttPDF } from "@/lib/exportPdf";
 import { toast } from "sonner";
+import { useState } from "react";
 
 function inferSupplierTag(supplier: string): SourceTag {
   const s = supplier.toLowerCase();
@@ -54,6 +55,12 @@ const CONFIDENCE_STYLE: Record<string, string> = {
   inferred: "bg-muted text-muted-foreground",
 };
 
+const STEP_CONFIDENCE_STYLE: Record<string, string> = {
+  high: "bg-[oklch(0.6_0.13_150)/0.12] text-[oklch(0.4_0.13_150)] dark:text-[oklch(0.8_0.14_150)] border-[oklch(0.55_0.13_150)/0.4]",
+  medium: "bg-[oklch(0.75_0.14_80)/0.15] text-[oklch(0.45_0.13_70)] dark:text-[oklch(0.85_0.14_80)] border-[oklch(0.65_0.14_70)/0.4]",
+  low: "bg-muted text-muted-foreground border-border",
+};
+
 export function PlanTabs({
   plan,
   retrieval,
@@ -61,6 +68,7 @@ export function PlanTabs({
   plan: ExperimentPlan;
   retrieval: RetrievalResults;
 }) {
+  const [recipeView, setRecipeView] = useState<"detailed" | "standard">("detailed");
   return (
     <Tabs defaultValue="protocol" className="w-full">
       <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
@@ -77,33 +85,67 @@ export function PlanTabs({
           <Empty label="Protocol not generated yet." />
         ) : (
           <div className="space-y-6">
-            <Accordion type="multiple" className="rounded-xl border bg-card">
-              {plan.protocol.protocol_steps.map((s) => (
-                <AccordionItem key={s.step} value={`s${s.step}`} className="px-4">
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                        {s.step}
-                      </span>
-                      <span className="font-medium">{s.title}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 pl-9 text-sm">
-                      <p className="text-muted-foreground">{s.description}</p>
-                      {s.critical_parameters && (
-                        <div className="rounded-md bg-accent/40 p-3 text-xs">
-                          <span className="font-medium text-accent-foreground">
-                            Critical parameters:
-                          </span>{" "}
-                          <span className="text-muted-foreground">{s.critical_parameters}</span>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Protocol depth: {recipeView === "detailed" ? "Detailed Scientific Recipe Mode" : "Standard"}
+              </div>
+              <div className="inline-flex rounded-md border bg-card p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setRecipeView("standard")}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-xs",
+                    recipeView === "standard" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Standard view
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecipeView("detailed")}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-xs",
+                    recipeView === "detailed" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Detailed recipe
+                </button>
+              </div>
+            </div>
+            {recipeView === "standard" ? (
+              <Accordion type="multiple" className="rounded-xl border bg-card">
+                {plan.protocol.protocol_steps.map((s) => (
+                  <AccordionItem key={s.step_number} value={`s${s.step_number}`} className="px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3 text-left">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                          {s.step_number}
+                        </span>
+                        <span className="font-medium">{s.title}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 pl-9 text-sm">
+                        <p className="text-muted-foreground">{s.objective}</p>
+                        {s.actions?.length > 0 && (
+                          <ol className="list-decimal space-y-1 pl-5 text-sm">
+                            {s.actions.map((a, i) => (
+                              <li key={i}>{a}</li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <Accordion type="multiple" className="rounded-xl border bg-card">
+                {plan.protocol.protocol_steps.map((s) => (
+                  <RecipeStepItem key={s.step_number} s={s} />
+                ))}
+              </Accordion>
+            )}
 
             {plan.protocol.assumptions.length > 0 && (
               <Section title="Assumptions" items={plan.protocol.assumptions} />
@@ -316,6 +358,146 @@ export function PlanTabs({
       </TabsContent>
     </Tabs>
   );
+}
+
+function RecipeStepItem({ s }: { s: ProtocolStep }) {
+  const copyStep = () => {
+    const text = formatStepText(s);
+    navigator.clipboard.writeText(text).then(
+      () => toast.success(`Step ${s.step_number} copied`),
+      () => toast.error("Copy failed"),
+    );
+  };
+  return (
+    <AccordionItem value={`s${s.step_number}`} className="px-4">
+      <AccordionTrigger className="hover:no-underline">
+        <div className="flex w-full items-center gap-3 text-left">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+            {s.step_number}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{s.title}</span>
+              {s.confidence && (
+                <span
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                    STEP_CONFIDENCE_STYLE[s.confidence],
+                  )}
+                >
+                  {s.confidence}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">{s.objective}</p>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="space-y-3 pl-9 text-sm">
+          {s.objective && (
+            <RecipeBlock label="Objective">{s.objective}</RecipeBlock>
+          )}
+          {s.materials?.length > 0 && (
+            <RecipeBlock label="Materials for this step">
+              <ul className="list-disc space-y-0.5 pl-5">
+                {s.materials.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </RecipeBlock>
+          )}
+          {s.actions?.length > 0 && (
+            <RecipeBlock label="Actions">
+              <ol className="list-decimal space-y-1 pl-5">
+                {s.actions.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ol>
+            </RecipeBlock>
+          )}
+          {s.parameters && Object.values(s.parameters).some(Boolean) && (
+            <div>
+              <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Parameters</div>
+              <div className="rounded-md border bg-accent/30 p-3 text-xs">
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                  {(["concentration", "volume", "temperature", "duration", "other_conditions"] as const)
+                    .filter((k) => s.parameters?.[k])
+                    .map((k) => (
+                      <div key={k} className="flex gap-2">
+                        <dt className="min-w-24 text-muted-foreground capitalize">{k.replace(/_/g, " ")}:</dt>
+                        <dd className="font-medium">{s.parameters?.[k]}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            </div>
+          )}
+          {s.checkpoint && (
+            <div className="rounded-md border border-[oklch(0.6_0.13_150)/0.3] bg-[oklch(0.6_0.13_150)/0.06] p-3 text-xs">
+              <div className="mb-0.5 font-medium text-[oklch(0.4_0.13_150)] dark:text-[oklch(0.8_0.14_150)]">Checkpoint</div>
+              <p>{s.checkpoint}</p>
+            </div>
+          )}
+          {s.failure_mode && (
+            <RecipeBlock label="Common failure mode">{s.failure_mode}</RecipeBlock>
+          )}
+          {s.troubleshooting && (
+            <RecipeBlock label="Troubleshooting">{s.troubleshooting}</RecipeBlock>
+          )}
+          {s.safety && (
+            <div className="rounded-md border border-[oklch(0.6_0.2_27)/0.3] bg-[oklch(0.6_0.2_27)/0.06] p-3 text-xs">
+              <div className="mb-0.5 font-medium text-[oklch(0.5_0.2_27)] dark:text-[oklch(0.82_0.18_27)]">Safety</div>
+              <p>{s.safety}</p>
+            </div>
+          )}
+          <div className="pt-1">
+            <Button variant="outline" size="sm" onClick={copyStep}>
+              <Copy className="mr-2 h-3.5 w-3.5" /> Copy step
+            </Button>
+          </div>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+function RecipeBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-sm">{children}</div>
+    </div>
+  );
+}
+
+function formatStepText(s: ProtocolStep): string {
+  const lines: string[] = [];
+  lines.push(`Step ${s.step_number} — ${s.title}`);
+  if (s.objective) lines.push(`Objective: ${s.objective}`);
+  if (s.materials?.length) {
+    lines.push("Materials:");
+    s.materials.forEach((m) => lines.push(`  - ${m}`));
+  }
+  if (s.actions?.length) {
+    lines.push("Actions:");
+    s.actions.forEach((a, i) => lines.push(`  ${i + 1}. ${a}`));
+  }
+  if (s.parameters) {
+    const pp = Object.entries(s.parameters).filter(([, v]) => v);
+    if (pp.length) {
+      lines.push("Parameters:");
+      pp.forEach(([k, v]) => lines.push(`  - ${k.replace(/_/g, " ")}: ${v}`));
+    }
+  }
+  if (s.checkpoint) lines.push(`Checkpoint: ${s.checkpoint}`);
+  if (s.failure_mode) lines.push(`Common failure mode: ${s.failure_mode}`);
+  if (s.troubleshooting) lines.push(`Troubleshooting: ${s.troubleshooting}`);
+  if (s.safety) lines.push(`Safety: ${s.safety}`);
+  if (s.confidence) lines.push(`Confidence: ${s.confidence}`);
+  return lines.join("\n");
 }
 
 function Section({
